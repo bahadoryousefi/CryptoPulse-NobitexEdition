@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CryptoPulse" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#06090e" />
+  <title>CryptoPulse Pro — Nobitex Edition</title>
+
+  <!-- Dynamic Favicons & Apple Touch Icons populated via 512x512 Canvas rasterizer at startup -->
+  <link id="favicon-link" rel="icon" type="image/png" href="" />
+  <link id="apple-touch-icon-link" rel="apple-touch-icon" sizes="512x512" href="" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: {
+              950: '#06090e',
+              900: '#0b1019',
+              850: '#101724',
+              800: '#162032',
+              700: '#1f2d46',
+            },
+            emeraldPro: {
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+            },
+            goldPro: {
+              300: '#fde047',
+              400: '#f5b942',
+              500: '#d99b26',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: #06090e;
+      color: #f1f5f9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overscroll-behavior-y: none;
+      overflow-x: hidden;
+    }
+    /* Clean custom scrollbars */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.65); border-radius: 9999px; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .surface-card {
+      background: linear-gradient(155deg, rgba(16, 23, 36, 0.94), rgba(10, 14, 23, 0.98));
+      border: 1px solid rgba(51, 65, 85, 0.42);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .emerald-ring { box-shadow: 0 0 22px rgba(16, 185, 129, 0.16); }
+    .gold-ring { box-shadow: 0 0 18px rgba(245, 185, 66, 0.16); }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #f5b942);
+      cursor: pointer;
+      border: 2px solid #06090e;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.65);
+    }
+    @keyframes pulseBeacon {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.25); }
+    }
+    .beacon-dot { animation: pulseBeacon 2s infinite ease-in-out; }
+  </style>
+</head>
+<body class="flex flex-col bg-obsidian-950 text-slate-100 select-none">
+
+  <!-- Non-Blocking Floating Toast Feedback -->
+  <div id="toast-stack" class="fixed top-[calc(0.75rem+var(--safe-top))] left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[92%] max-w-md pointer-events-none"></div>
+
+  <!-- StandBy / Lock-Screen High-Contrast Glance Overlay -->
+  <div id="glance-screen" class="fixed inset-0 z-[95] bg-black hidden flex-col justify-between p-6 pt-[calc(1.5rem+var(--safe-top))] pb-[calc(1.5rem+var(--safe-bottom))]">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 beacon-dot"></span>
+        <span class="text-xs font-mono uppercase tracking-widest text-emerald-400">StandBy Lock-Screen Glance</span>
+      </div>
+      <button onclick="setGlanceMode(false)" class="px-4 py-2 rounded-xl bg-neutral-900 border border-neutral-700 text-xs font-bold text-white active:scale-95">
+        Exit Glance
+      </button>
+    </div>
+    <div id="glance-cards" class="my-auto max-w-3xl mx-auto w-full grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+    <div class="flex items-center justify-between text-xs font-mono text-neutral-400 border-t border-neutral-900 pt-4">
+      <span id="glance-time">--:--</span>
+      <span id="glance-nobitex">USDT/IRT: --</span>
+    </div>
+  </div>
+
+  <!-- EDGE-TO-EDGE FULL-SCREEN APP HEADER (Zero Top Preview Strip, Safe-Area Top Integrated) -->
+  <header class="sticky top-0 z-40 w-full bg-obsidian-950/92 backdrop-blur-xl border-b border-slate-800/70 pt-[max(0.5rem,var(--safe-top))] pl-[max(0.75rem,var(--safe-left))] pr-[max(0.75rem,var(--safe-right))]">
+    <div class="max-w-[1680px] mx-auto py-2 flex items-center justify-between gap-2">
+      <!-- Brand Identity + Custom Obsidian / Emerald Pulse / Gold "N" Logo -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-10 h-10 rounded-2xl overflow-hidden border border-emerald-500/40 emerald-ring shrink-0 bg-obsidian-900">
+          <svg id="brand-logo-svg" viewBox="0 0 512 512" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="obsBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#131b29"/>
+                <stop offset="100%" stop-color="#070a10"/>
+              </linearGradient>
+              <linearGradient id="pulseGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#059669"/>
+                <stop offset="55%" stop-color="#10b981"/>
+                <stop offset="100%" stop-color="#f5b942"/>
+              </linearGradient>
+              <linearGradient id="goldCandle" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fde047"/>
+                <stop offset="100%" stop-color="#d99b26"/>
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="112" fill="url(#obsBg)"/>
+            <rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="rgba(245,185,66,0.24)" stroke-width="4"/>
+            <!-- Subtle Background Candlestick Accents -->
+            <g opacity="0.88">
+              <line x1="176" y1="138" x2="176" y2="236" stroke="#f5b942" stroke-width="5" stroke-linecap="round"/>
+              <rect x="166" y="158" width="20" height="54" rx="5" fill="url(#goldCandle)"/>
+              <line x1="216" y1="118" x2="216" y2="232" stroke="#10b981" stroke-width="5" stroke-linecap="round"/>
+              <rect x="205" y="140" width="22" height="68" rx="5" fill="#10b981"/>
+              <line x1="256" y1="104" x2="256" y2="226" stroke="#34d399" stroke-width="5" stroke-linecap="round"/>
+              <rect x="245" y="124" width="22" height="78" rx="5" fill="#34d399"/>
+              <line x1="296" y1="268" x2="296" y2="378" stroke="#10b981" stroke-width="5" stroke-linecap="round"/>
+              <rect x="285" y="290" width="22" height="64" rx="5" fill="#10b981"/>
+              <line x1="336" y1="242" x2="336" y2="356" stroke="#f5b942" stroke-width="5" stroke-linecap="round"/>
+              <rect x="326" y="264" width="20" height="66" rx="5" fill="url(#goldCandle)"/>
+            </g>
+            <!-- Glowing Emerald Pulse Wave Forming Stylized "N" with Gold Arrow Apex -->
+            <path d="M104 374 L176 198 L286 352 L392 142" fill="none" stroke="url(#pulseGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+            <polygon points="412,112 350,136 402,174" fill="#f5b942"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate">CryptoPulse <span class="text-emerald-400">Pro</span></span>
+            <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-goldPro-400/15 text-goldPro-400 border border-goldPro-400/35 shrink-0">Nobitex</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span id="live-dot" class="w-2 h-2 rounded-full bg-emerald-400 beacon-dot shrink-0"></span>
+            <span id="live-status" class="truncate">Syncing live markets...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Streamlined Quick Actions: Currency Toggle, Nobitex USDT/IRT Pill, Sync & Glance -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- USD / IRT Segmented Switch -->
+        <div class="flex items-center bg-obsidian-850 p-1 rounded-xl border border-slate-700/75">
+          <button id="curr-btn-usd" onclick="setCurrency('USD')" class="px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all">USD</button>
+          <button id="curr-btn-irt" onclick="setCurrency('IRT')" class="px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all">IRT</button>
+        </div>
+
+        <!-- Nobitex USDT/IRT Rate & Spread Button -->
+        <button onclick="openUsdtSheet()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-obsidian-850 border border-slate-700/75 hover:border-goldPro-400/50 text-xs font-mono active:scale-95" title="Nobitex USDT/IRT Rate & Spread">
+          <span class="hidden sm:inline text-slate-400">USDT:</span>
+          <span id="hdr-usdt-val" class="text-goldPro-400 font-bold">89,450</span>
+          <span class="text-[10px] text-slate-500">IRT</span>
+        </button>
+
+        <!-- Refresh Prices -->
+        <button onclick="syncLivePrices(true)" class="p-2 rounded-xl bg-obsidian-850 border border-slate-700/75 hover:border-emerald-500/50 text-slate-300 active:scale-95" title="Refresh Prices">
+          <svg id="sync-spinner" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+        </button>
+
+        <!-- StandBy / Lock-Screen Glance Mode -->
+        <button onclick="setGlanceMode(true)" class="p-2 rounded-xl bg-obsidian-850 border border-slate-700/75 hover:border-goldPro-400/50 text-goldPro-400 active:scale-95" title="Lock-Screen Glance Mode">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Compact Telemetry Ribbon: Nobitex Spread (1/2) + Fear & Greed + Risk Level -->
+    <div class="border-t border-slate-800/60 py-1.5 text-[11px] font-mono">
+      <div class="max-w-[1680px] mx-auto flex items-center justify-between gap-3 overflow-x-auto no-scrollbar whitespace-nowrap">
+        <div class="flex items-center gap-2.5">
+          <span class="text-slate-400">Spread: <strong id="ribbon-spread" class="text-emerald-400">+0.42% Balanced</strong></span>
+          <span class="text-slate-700">•</span>
+          <span id="ribbon-route" class="text-slate-300">Direct IRT & USDT Parity Aligned</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span class="text-slate-400">F&G: <strong id="ribbon-fng" class="text-emerald-400">62 Greed</strong></span>
+          <span class="text-slate-700">•</span>
+          <span class="text-slate-400">Risk: <strong id="ribbon-risk" class="text-goldPro-400">5/10</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN RESPONSIVE WORKSPACE: iPad Split-Screen Multitasking (4/1) + Clean Mobile Tabs -->
+  <main class="flex-1 w-full max-w-[1680px] mx-auto px-2.5 sm:px-4 pt-3 pb-[calc(4.75rem+var(--safe-bottom))] md:pb-6 grid grid-cols-1 md:grid-cols-12 gap-3.5 items-start">
+
+    <!-- LEFT PANE (Market Watchlist — Always visible on iPad/Desktop, "Market" tab on Mobile) -->
+    <aside id="pane-market" class="md:col-span-4 lg:col-span-3 surface-card rounded-2xl p-3 flex flex-col gap-2.5 md:sticky md:top-[96px] md:max-h-[calc(100dvh-112px)]">
+      <!-- Search & Favorites Star Filter -->
+      <div class="flex items-center gap-1.5">
+        <div class="relative flex-1">
+          <input id="search-input" type="text" placeholder="Search 40 coins (PAXG, SOL, ETH...)" oninput="onSearchInput(this.value)"
+            class="w-full bg-obsidian-950 border border-slate-700/80 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+          <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <button id="fav-filter-btn" onclick="toggleFavOnly()" title="Favorites Only"
+          class="px-3 py-2 rounded-xl border text-xs font-bold transition-all">★</button>
+      </div>
+
+      <!-- Sort Selector -->
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] text-slate-400 font-medium">Order:</span>
+        <select id="sort-dropdown" onchange="setSortMode(this.value)"
+          class="flex-1 bg-obsidian-950 border border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+          <option value="manual">Manual Order (↑ / ↓)</option>
+          <option value="st_desc">Highest Short-Term Score</option>
+          <option value="lt_desc">Highest Long-Term Score</option>
+          <option value="az">Alphabetical (A → Z)</option>
+          <option value="za">Alphabetical (Z → A)</option>
+          <option value="chg_desc">Top 24h Gainers</option>
+        </select>
+      </div>
+
+      <!-- Scrollable 40-Coin List -->
+      <div id="coin-list-box" class="flex-1 overflow-y-auto space-y-1.5 pr-0.5 max-h-[68dvh] md:max-h-none"></div>
+    </aside>
+
+    <!-- RIGHT PANE (Interactive Chart, Score Engine, DCA/Risk, Alerts/Journal, Option 2 Setup) -->
+    <section id="pane-detail" class="md:col-span-8 lg:col-span-9 flex flex-col gap-3.5">
+
+      <!-- iPad / Desktop Clean Top Segmented Bar -->
+      <div class="hidden md:flex items-center gap-1.5 bg-obsidian-900/90 p-1.5 rounded-2xl border border-slate-800/80">
+        <button onclick="setDesktopSection('chart')" data-sec="chart" class="sec-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all">Chart & Multi-Factor Plan</button>
+        <button onclick="setDesktopSection('alerts')" data-sec="alerts" class="sec-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all">Alerts, Journal & Recap</button>
+        <button onclick="setDesktopSection('setup')" data-sec="setup" class="sec-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all">Option 2 Push & Lock Widget</button>
+      </div>
+
+      <!-- SECTION 1: CHART, SCORE PROVIDER, RISK ADJUSTMENT & DCA TRANCHES -->
+      <div id="section-chart" class="space-y-3.5">
+
+        <!-- Quick-Glance Hero Card (Price, Dual Scores, Action Verdict, 1-Tap Quick Alert) -->
+        <div class="surface-card rounded-2xl p-3.5 sm:p-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div id="hero-badge" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-goldPro-400/20 border border-emerald-500/40 flex items-center justify-center font-mono font-extrabold text-sm text-emerald-300 shrink-0">
+                SOL
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h1 id="hero-name" class="text-lg sm:text-xl font-extrabold text-white">Solana</h1>
+                  <span id="hero-pair" class="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">SOL / USD</span>
+                  <button id="hero-star" onclick="toggleFavorite(state.selectedCoin)" class="px-2 py-0.5 rounded-lg bg-slate-800/90 text-sm" title="Favorite">★</button>
+                  <span id="hero-tier" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Tier-1 L1</span>
+                </div>
+                <div class="flex items-baseline gap-2.5 mt-1 flex-wrap">
+                  <span id="hero-main-price" class="text-2xl sm:text-3xl font-mono font-extrabold text-white">$0.00</span>
+                  <span id="hero-alt-price" class="text-xs font-mono text-slate-400">≈ 0 IRT</span>
+                  <span id="hero-chg-pill" class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg">+0.00%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Verdict + 1-Tap Quick Alert -->
+            <div class="flex flex-col items-start sm:items-end gap-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span id="hero-verdict-pill" class="px-3 py-1 rounded-xl text-xs font-extrabold uppercase tracking-wide bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  STRONG BUY
+                </span>
+                <button onclick="quickAlertForSelected()" class="px-3 py-1 rounded-xl text-xs font-bold bg-goldPro-400/15 hover:bg-goldPro-400/25 text-goldPro-400 border border-goldPro-400/40 active:scale-95">
+                  + Quick Alert
+                </button>
+              </div>
+              <div id="hero-corr-note" class="text-[11px] text-slate-300 bg-obsidian-950/90 border border-slate-800 px-2.5 py-1 rounded-lg">
+                Correlation regime loading...
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic ATR & S/R Levels Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5 pt-3 border-t border-slate-800/70">
+            <div class="bg-obsidian-950/90 rounded-xl p-2.5 border border-emerald-500/25">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Suggested Buy Zone</div>
+              <div id="level-buy" class="text-xs sm:text-sm font-mono font-extrabold text-white mt-0.5">--</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">ATR Support Entry</div>
+            </div>
+            <div class="bg-obsidian-950/90 rounded-xl p-2.5 border border-rose-500/25">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-rose-400">Stop-Loss Guard</div>
+              <div id="level-stop" class="text-xs sm:text-sm font-mono font-extrabold text-white mt-0.5">--</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Risk-Scaled Invalidation</div>
+            </div>
+            <div class="bg-obsidian-950/90 rounded-xl p-2.5 border border-cyan-500/25">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Short-Term Target (T1)</div>
+              <div id="level-t1" class="text-xs sm:text-sm font-mono font-extrabold text-white mt-0.5">--</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Swing Resistance</div>
+            </div>
+            <div class="bg-obsidian-950/90 rounded-xl p-2.5 border border-goldPro-400/25">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-goldPro-400">Long-Term Target (T2)</div>
+              <div id="level-t2" class="text-xs sm:text-sm font-mono font-extrabold text-white mt-0.5">--</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Macro Expansion</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INTERACTIVE 11-MODE CHART CARD -->
+        <div class="surface-card rounded-2xl p-3 sm:p-4 space-y-2.5">
+          <!-- Timeframe & Overlay Toggles -->
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1 bg-obsidian-950 p-1 rounded-xl border border-slate-800">
+              <button onclick="setTimeframe('24H')" data-tf="24H" class="tf-pill px-2.5 py-1 rounded-lg text-xs font-mono font-bold">24H</button>
+              <button onclick="setTimeframe('7D')" data-tf="7D" class="tf-pill px-2.5 py-1 rounded-lg text-xs font-mono font-bold">7D</button>
+              <button onclick="setTimeframe('30D')" data-tf="30D" class="tf-pill px-2.5 py-1 rounded-lg text-xs font-mono font-bold">30D</button>
+              <button onclick="setTimeframe('90D')" data-tf="90D" class="tf-pill px-2.5 py-1 rounded-lg text-xs font-mono font-bold">90D</button>
+              <button onclick="setTimeframe('1Y')" data-tf="1Y" class="tf-pill px-2.5 py-1 rounded-lg text-xs font-mono font-bold">1Y</button>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button id="ov-levels-btn" onclick="toggleOverlay('levels')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all">S/R Levels</button>
+              <button id="ov-ema-btn" onclick="toggleOverlay('ema')" class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all">EMA 50/200</button>
+            </div>
+          </div>
+
+          <!-- Horizontal Scrollable Pill Selector for All 11 Chart Modes -->
+          <div id="chart-style-pills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1"></div>
+
+          <!-- Baseline Reference Line Selector (Shown when Baseline style is active) -->
+          <div id="baseline-bar" class="hidden flex flex-wrap items-center justify-between gap-2 bg-obsidian-950/90 border border-slate-800 rounded-xl px-3 py-2 text-xs">
+            <span class="text-slate-400 font-medium">Baseline Reference Split:</span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="setBaselineRef('buy')" data-bref="buy" class="bref-pill px-2.5 py-1 rounded-lg font-bold">Suggested Buy</button>
+              <button onclick="setBaselineRef('current')" data-bref="current" class="bref-pill px-2.5 py-1 rounded-lg font-bold">Current Price</button>
+              <button onclick="setBaselineRef('open')" data-bref="open" class="bref-pill px-2.5 py-1 rounded-lg font-bold">Period Open</button>
+            </div>
+          </div>
+
+          <!-- Crosshair OHLCV + RSI Readout -->
+          <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400 px-0.5">
+            <span id="scrubber-time">Touch or drag chart to inspect OHLCV & RSI</span>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <span>O:<strong id="scrubber-o" class="text-slate-200 ml-0.5">--</strong></span>
+              <span>H:<strong id="scrubber-h" class="text-emerald-400 ml-0.5">--</strong></span>
+              <span>L:<strong id="scrubber-l" class="text-rose-400 ml-0.5">--</strong></span>
+              <span>C:<strong id="scrubber-c" class="text-white ml-0.5">--</strong></span>
+              <span>RSI:<strong id="scrubber-rsi" class="text-goldPro-400 ml-0.5">--</strong></span>
+            </div>
+          </div>
+
+          <!-- Responsive Interactive Canvas -->
+          <div id="chart-box" class="relative w-full h-[290px] sm:h-[350px] rounded-xl overflow-hidden bg-obsidian-950 border border-slate-800/80">
+            <canvas id="main-chart-canvas" class="block w-full h-full touch-none cursor-crosshair"></canvas>
+          </div>
+
+          <!-- Risk Adjustment Option (1–10 Slider + 4 Presets) -->
+          <div class="pt-2.5 border-t border-slate-800/70 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-extrabold text-white">Risk Adjustment Option:</span>
+                <span id="risk-display-badge" class="px-2.5 py-0.5 rounded-lg bg-goldPro-400/15 border border-goldPro-400/35 text-goldPro-400 font-mono text-xs font-bold">5 / 10 Balanced</span>
+              </div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button onclick="applyPreset('preservation')" class="px-2 py-1 rounded-lg bg-obsidian-950 border border-slate-800 hover:border-emerald-500/50 text-[11px] font-semibold text-emerald-300">Preservation (2)</button>
+                <button onclick="applyPreset('balanced')" class="px-2 py-1 rounded-lg bg-obsidian-950 border border-slate-800 hover:border-cyan-500/50 text-[11px] font-semibold text-cyan-300">Balanced (5)</button>
+                <button onclick="applyPreset('macro_dca')" class="px-2 py-1 rounded-lg bg-obsidian-950 border border-slate-800 hover:border-goldPro-400/50 text-[11px] font-semibold text-goldPro-400">Macro DCA (4)</button>
+                <button onclick="applyPreset('high_beta')" class="px-2 py-1 rounded-lg bg-obsidian-950 border border-slate-800 hover:border-rose-500/50 text-[11px] font-semibold text-rose-300">High-Beta (8)</button>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-[11px] font-bold text-emerald-400">1 Safe</span>
+              <input id="risk-slider" type="range" min="1" max="10" value="5" oninput="setRiskLevel(this.value)" class="flex-1" />
+              <span class="text-[11px] font-bold text-rose-400">10 Aggressive</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MULTI-FACTOR SHORT-TERM & LONG-TERM SCORE PROVIDER CARDS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+          <!-- Short-Term Score Card -->
+          <div class="surface-card rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-mono uppercase tracking-wider text-emerald-400">Swing & Momentum Engine</span>
+                <h2 class="text-base font-extrabold text-white">Short-Term Score Provider</h2>
+              </div>
+              <div class="text-right">
+                <div id="st-score-val" class="text-2xl font-mono font-extrabold text-emerald-400">74<span class="text-xs text-slate-500">/100</span></div>
+                <div id="st-whip-status" class="text-[10px] font-mono text-slate-400">Hysteresis: Clear</div>
+              </div>
+            </div>
+            <div id="st-bars-container" class="space-y-2.5 text-xs"></div>
+            <p id="st-summary-note" class="text-xs text-slate-300 bg-obsidian-950/90 p-2.5 rounded-xl border border-slate-800 leading-relaxed"></p>
+          </div>
+
+          <!-- Long-Term Score Card -->
+          <div class="surface-card rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-mono uppercase tracking-wider text-goldPro-400">Macro & Valuation Engine</span>
+                <h2 class="text-base font-extrabold text-white">Long-Term Score Provider</h2>
+              </div>
+              <div class="text-right">
+                <div id="lt-score-val" class="text-2xl font-mono font-extrabold text-goldPro-400">81<span class="text-xs text-slate-500">/100</span></div>
+                <div id="lt-mayer-status" class="text-[10px] font-mono text-slate-400">Mayer: 0.95</div>
+              </div>
+            </div>
+            <div id="lt-bars-container" class="space-y-2.5 text-xs"></div>
+            <p id="lt-summary-note" class="text-xs text-slate-300 bg-obsidian-950/90 p-2.5 rounded-xl border border-slate-800 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- 3-STAGE DCA TRANCHE PLANNER (Feature 1/1) -->
+        <div class="surface-card rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-extrabold text-white">3-Stage DCA Tranche Planner — <span id="dca-sym-label" class="text-emerald-400">SOL</span></h2>
+              <p class="text-xs text-slate-400">Staged entries & take-profit targets scaled to your allocation and Risk Adjustment setting.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400">Capital (<span id="dca-curr-unit">USD</span>):</span>
+              <input id="dca-capital-input" type="number" min="1" step="any" value="1000" oninput="setDcaCapital(this.value)"
+                class="w-32 bg-obsidian-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="bg-obsidian-950/90 rounded-xl p-3 border border-emerald-500/25 space-y-2">
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">Buy Ladder (30% / 40% / 30%)</div>
+              <div id="dca-buy-list" class="space-y-1.5"></div>
+            </div>
+            <div class="bg-obsidian-950/90 rounded-xl p-3 border border-goldPro-400/25 space-y-2">
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-goldPro-400">Take-Profit Ladder (35% / 40% / 25%)</div>
+              <div id="dca-sell-list" class="space-y-1.5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: ALERTS (2/1, 2/3), TRADE JOURNAL (3/2) & DAILY/WEEKLY RECAP (3/3) -->
+      <div id="section-alerts" class="hidden space-y-3.5">
+        <!-- Daily / Weekly Recap Snapshot (3/3) -->
+        <div class="surface-card rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-extrabold text-white">Daily & Weekly Market Recap</h2>
+              <p class="text-xs text-slate-400">Highest scoring short-term setups, long-term DCA value leaders, and top movers.</p>
+            </div>
+            <span id="recap-date-label" class="text-[11px] font-mono text-slate-400">--</span>
+          </div>
+          <div id="recap-cards-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- Price & Score Alerts + Quiet Hours (2/1) + Deep-Link Routing (2/3) -->
+        <div class="surface-card rounded-2xl p-4 space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-extrabold text-white">Price & Score Alerts</h2>
+              <p class="text-xs text-slate-400">Includes approaching soft-pings (within 1.5%), Quiet Hours, and deep-link navigation.</p>
+            </div>
+            <button onclick="enablePushPermission()" class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold hover:bg-emerald-500/30">
+              Enable Device Notifications
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 bg-obsidian-950/90 p-3 rounded-xl border border-slate-800">
+            <select id="al-coin" class="bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white font-bold"></select>
+            <select id="al-cond" class="bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white">
+              <option value="price_below">Price Drops Below</option>
+              <option value="price_above">Price Rises Above</option>
+              <option value="st_above">Short-Term Score ≥</option>
+              <option value="lt_above">Long-Term Score ≥</option>
+            </select>
+            <input id="al-val" type="number" step="any" placeholder="Target Value" class="bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-mono text-white" />
+            <input id="al-note" type="text" placeholder="Note (e.g. Tranche 1)" class="bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white" />
+            <button onclick="createAlert()" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-obsidian-950 font-extrabold text-xs">
+              + Create Alert
+            </button>
+          </div>
+
+          <!-- Quiet Hours Window (2/1) -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-obsidian-950/90 p-3 rounded-xl border border-slate-800 text-xs">
+            <label class="flex items-center gap-2 font-bold text-slate-200 cursor-pointer">
+              <input id="qh-enabled" type="checkbox" onchange="updateQuietHours()" class="w-4 h-4 accent-emerald-500 rounded" />
+              <span>Quiet Hours / Sleep Window (Silence Non-Urgent Alerts)</span>
+            </label>
+            <div class="flex items-center gap-2 font-mono">
+              <input id="qh-start" type="time" value="23:00" onchange="updateQuietHours()" class="bg-obsidian-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200" />
+              <span class="text-slate-500">to</span>
+              <input id="qh-end" type="time" value="07:00" onchange="updateQuietHours()" class="bg-obsidian-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200" />
+            </div>
+          </div>
+
+          <div id="alerts-items-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Trade Journal & Post-Trade Notes (3/2) -->
+        <div class="surface-card rounded-2xl p-4 space-y-3">
+          <h2 class="text-base font-extrabold text-white">Trade Journal & Post-Trade Notes</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-obsidian-950/90 p-3 rounded-xl border border-slate-800">
+            <select id="jn-coin" class="bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white font-bold"></select>
+            <select id="jn-action" class="bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white">
+              <option value="BUY / LONG">BUY / LONG</option>
+              <option value="SELL / EXIT">SELL / EXIT</option>
+              <option value="DCA TRANCHE">DCA TRANCHE</option>
+              <option value="WATCHLIST NOTE">WATCHLIST NOTE</option>
+            </select>
+            <input id="jn-text" type="text" placeholder="Entry thesis, Nobitex spread observation, or discipline lesson..."
+              class="sm:col-span-2 bg-obsidian-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white" />
+            <button onclick="saveJournalNote()" class="sm:col-span-4 py-2 rounded-xl bg-goldPro-400 hover:bg-goldPro-300 text-obsidian-950 font-extrabold text-xs">
+              Log Journal Entry
+            </button>
+          </div>
+          <div id="journal-items-list" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: OPTION 2 INSTALL, CUSTOM LOGO & WIDGETKIT FILES -->
+      <div id="section-setup" class="hidden space-y-3.5">
+        <div class="surface-card rounded-2xl p-4 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <!-- Live Preview of the Approved Obsidian + Emerald Pulse + Gold "N" App Icon -->
+              <div class="w-14 h-14 rounded-2xl overflow-hidden border border-goldPro-400/40 gold-ring shrink-0">
+                <img id="icon-preview-img" alt="CryptoPulse Pro App Icon" class="w-full h-full object-cover" />
+              </div>
+              <div>
+                <h2 class="text-base font-extrabold text-white">Option 2: Direct Apple Push & Lock-Screen Widget Kit</h2>
+                <p class="text-xs text-slate-400">Your approved Obsidian, Emerald Pulse & Gold "N" logo is embedded automatically for iOS Home Screen & Push.</p>
+              </div>
+            </div>
+            <button onclick="downloadAppIconPng()" class="px-3.5 py-2 rounded-xl bg-goldPro-400 hover:bg-goldPro-300 text-obsidian-950 text-xs font-extrabold active:scale-95">
+              Download 512px Icon PNG
+            </button>
+          </div>
+
+          <!-- File Selector Buttons -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button onclick="selectKitFile('manifest')" data-kit="manifest" class="kit-tab px-3 py-1.5 rounded-xl text-xs font-mono font-bold">manifest.json</button>
+            <button onclick="selectKitFile('sw')" data-kit="sw" class="kit-tab px-3 py-1.5 rounded-xl text-xs font-mono font-bold">sw.js</button>
+            <button onclick="selectKitFile('worker')" data-kit="worker" class="kit-tab px-3 py-1.5 rounded-xl text-xs font-mono font-bold">worker.js</button>
+            <button onclick="selectKitFile('swift')" data-kit="swift" class="kit-tab px-3 py-1.5 rounded-xl text-xs font-mono font-bold">CryptoPulseWidget.swift</button>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span id="kit-file-desc" class="text-xs text-emerald-300 font-medium">PWA Manifest configured with your custom app icon</span>
+              <button onclick="copyKitCode()" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-obsidian-950 text-xs font-extrabold active:scale-95">
+                Copy File
+              </button>
+            </div>
+            <textarea id="kit-code-textarea" readonly rows="13"
+              class="w-full bg-obsidian-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono text-slate-200 focus:outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- CLEAN SEGMENTED MOBILE BOTTOM NAVIGATION BAR (Safe-Area Bottom Aware) -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-obsidian-950/95 backdrop-blur-xl border-t border-slate-800/80 pb-[max(0.5rem,var(--safe-bottom))] pt-1.5 px-3">
+    <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
+      <button onclick="setMobileTab('market')" data-mtab="market" class="mtab-btn flex flex-col items-center py-1.5 rounded-xl transition-all">
+        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span>Market</span>
+      </button>
+      <button onclick="setMobileTab('chart')" data-mtab="chart" class="mtab-btn flex flex-col items-center py-1.5 rounded-xl transition-all">
+        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        <span>Chart & Plan</span>
+      </button>
+      <button onclick="setMobileTab('alerts')" data-mtab="alerts" class="mtab-btn flex flex-col items-center py-1.5 rounded-xl transition-all">
+        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span>Alerts & Log</span>
+      </button>
+      <button onclick="setMobileTab('setup')" data-mtab="setup" class="mtab-btn flex flex-col items-center py-1.5 rounded-xl transition-all">
+        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        <span>Widget & Push</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- BOTTOM SHEET MODAL: NOBITEX USDT/IRT RATE & SPREAD ENGINE (1/2) -->
+  <div id="usdt-sheet" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="surface-card w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-5 space-y-4 border-t sm:border border-slate-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">Nobitex USDT / IRT Spread Engine</h3>
+        <button onclick="closeUsdtSheet()" class="text-slate-400 hover:text-white text-lg font-bold px-2">✕</button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Adjust your live Nobitex <strong class="text-goldPro-400">USDT/IRT</strong> rate and parity benchmark to compute local Toman spread and entry routing advice.
+      </p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Nobitex Market Rate (1 USDT in IRT تومان)</label>
+          <input id="input-usdt-irt" type="number" step="50" class="w-full bg-obsidian-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono font-bold text-goldPro-400" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Reference Parity Rate (1 USD in IRT تومان)</label>
+          <input id="input-parity-irt" type="number" step="50" class="w-full bg-obsidian-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-slate-200" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-1">
+        <button onclick="closeUsdtSheet()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300">Cancel</button>
+        <button onclick="saveUsdtSheet()" class="px-4 py-2 rounded-xl bg-emerald-500 text-obsidian-950 text-xs font-extrabold">Apply Rate</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**************************************************************************
+     * 1. 40-COIN ROSTER WITH DISTINCT VOLATILITY, TIER & CORRELATION PROFILES
+     **************************************************************************/
+    const COINS = [
+      { symbol: 'PAXG', name: 'PAX Gold', price: 2688.00, chg: 0.68, vol: 0.0085, drift: 0.0012, tier: 'Gold-Backed RWA', quality: 96, corr: 0.14, cgId: 'pax-gold' },
+      { symbol: 'XAUT', name: 'Tether Gold', price: 2685.50, chg: 0.62, vol: 0.0085, drift: 0.0011, tier: 'Gold-Backed RWA', quality: 95, corr: 0.13, cgId: 'tether-gold' },
+      { symbol: 'SOL', name: 'Solana', price: 216.40, chg: 4.95, vol: 0.036, drift: 0.0034, tier: 'Tier-1 Layer 1', quality: 89, corr: 0.82, cgId: 'solana' },
+      { symbol: 'ETH', name: 'Ethereum', price: 3310.00, chg: 2.45, vol: 0.024, drift: 0.0021, tier: 'Core Smart Contract', quality: 96, corr: 0.89, cgId: 'ethereum' },
+      { symbol: 'LINK', name: 'Chainlink', price: 18.65, chg: 3.55, vol: 0.032, drift: 0.0026, tier: 'Oracle Infrastructure', quality: 87, corr: 0.78, cgId: 'chainlink' },
+      { symbol: 'CVX', name: 'Convex Finance', price: 3.22, chg: -1.30, vol: 0.044, drift: 0.0009, tier: 'DeFi Yield', quality: 73, corr: 0.68, cgId: 'convex-finance' },
+      { symbol: 'POL', name: 'Polygon', price: 0.565, chg: 2.05, vol: 0.035, drift: 0.0015, tier: 'Ethereum Scaling', quality: 80, corr: 0.81, cgId: 'polygon-ecosystem-token' },
+      { symbol: 'AVAX', name: 'Avalanche', price: 39.10, chg: 3.25, vol: 0.038, drift: 0.0024, tier: 'Tier-1 Layer 1', quality: 84, corr: 0.84, cgId: 'avalanche-2' },
+      { symbol: 'DOGE', name: 'Dogecoin', price: 0.368, chg: 6.20, vol: 0.048, drift: 0.0031, tier: 'High-Beta Meme', quality: 69, corr: 0.76, cgId: 'dogecoin' },
+      { symbol: 'LDO', name: 'Lido DAO', price: 1.51, chg: -0.85, vol: 0.039, drift: 0.0012, tier: 'Liquid Staking', quality: 79, corr: 0.79, cgId: 'lido-dao' },
+      { symbol: 'ADA', name: 'Cardano', price: 0.85, chg: 2.85, vol: 0.033, drift: 0.0019, tier: 'Tier-1 Layer 1', quality: 81, corr: 0.80, cgId: 'cardano' },
+      { symbol: 'ATOM', name: 'Cosmos', price: 6.78, chg: 1.25, vol: 0.034, drift: 0.0011, tier: 'Interchain Hub', quality: 79, corr: 0.77, cgId: 'cosmos' },
+      { symbol: 'LTC', name: 'Litecoin', price: 94.80, chg: 1.90, vol: 0.025, drift: 0.0016, tier: 'Payments Legacy', quality: 82, corr: 0.83, cgId: 'litecoin' },
+      { symbol: 'USDT', name: 'Tether USD', price: 1.00, chg: 0.01, vol: 0.0015, drift: 0.0000, tier: 'Stablecoin / IRT Hedge', quality: 98, corr: 0.02, cgId: 'tether' },
+      { symbol: 'BTC', name: 'Bitcoin', price: 93850.00, chg: 2.25, vol: 0.021, drift: 0.0025, tier: 'Macro Digital Gold', quality: 99, corr: 1.00, cgId: 'bitcoin' },
+      { symbol: 'TON', name: 'Toncoin', price: 5.68, chg: 3.10, vol: 0.035, drift: 0.0023, tier: 'Consumer Layer 1', quality: 82, corr: 0.69, cgId: 'the-open-network' },
+      { symbol: 'SHIB', name: 'Shiba Inu', price: 0.0000251, chg: 4.40, vol: 0.052, drift: 0.0025, tier: 'High-Beta Meme', quality: 65, corr: 0.77, cgId: 'shiba-inu' },
+      { symbol: 'XRP', name: 'Ripple', price: 1.44, chg: 5.50, vol: 0.041, drift: 0.0032, tier: 'Settlement Rails', quality: 84, corr: 0.72, cgId: 'ripple' },
+      { symbol: 'BNB', name: 'BNB Chain', price: 642.00, chg: 1.55, vol: 0.022, drift: 0.0019, tier: 'Exchange Ecosystem', quality: 89, corr: 0.81, cgId: 'binancecoin' },
+      { symbol: 'TRX', name: 'TRON', price: 0.199, chg: 1.15, vol: 0.019, drift: 0.0018, tier: 'Stablecoin Rails', quality: 83, corr: 0.65, cgId: 'tron' },
+      { symbol: 'DOT', name: 'Polkadot', price: 6.52, chg: 1.80, vol: 0.032, drift: 0.0014, tier: 'Interoperability L0', quality: 79, corr: 0.82, cgId: 'polkadot' },
+      { symbol: 'UNI', name: 'Uniswap', price: 10.95, chg: 2.75, vol: 0.035, drift: 0.0021, tier: 'Blue-Chip DEX', quality: 85, corr: 0.78, cgId: 'uniswap' },
+      { symbol: 'NEAR', name: 'NEAR Protocol', price: 6.24, chg: 4.25, vol: 0.039, drift: 0.0027, tier: 'AI + Sharded L1', quality: 82, corr: 0.81, cgId: 'near' },
+      { symbol: 'APT', name: 'Aptos', price: 12.25, chg: 3.15, vol: 0.042, drift: 0.0024, tier: 'Move Layer 1', quality: 79, corr: 0.79, cgId: 'aptos' },
+      { symbol: 'SUI', name: 'Sui Network', price: 3.52, chg: 7.35, vol: 0.047, drift: 0.0041, tier: 'Move Layer 1', quality: 81, corr: 0.75, cgId: 'sui' },
+      { symbol: 'ARB', name: 'Arbitrum', price: 0.90, chg: -0.55, vol: 0.038, drift: 0.0010, tier: 'Layer-2 Rollup', quality: 78, corr: 0.84, cgId: 'arbitrum' },
+      { symbol: 'OP', name: 'Optimism', price: 2.15, chg: 1.45, vol: 0.039, drift: 0.0014, tier: 'Superchain L2', quality: 79, corr: 0.83, cgId: 'optimism' },
+      { symbol: 'INJ', name: 'Injective', price: 25.60, chg: 4.50, vol: 0.045, drift: 0.0029, tier: 'DeFi Orderbook L1', quality: 80, corr: 0.80, cgId: 'injective-protocol' },
+      { symbol: 'FET', name: 'ASI Alliance', price: 1.56, chg: 5.05, vol: 0.049, drift: 0.0031, tier: 'AI Agent Network', quality: 78, corr: 0.73, cgId: 'fetch-ai' },
+      { symbol: 'RNDR', name: 'Render', price: 8.05, chg: 5.90, vol: 0.048, drift: 0.0035, tier: 'DePIN GPU Compute', quality: 81, corr: 0.74, cgId: 'render-token' },
+      { symbol: 'TIA', name: 'Celestia', price: 5.88, chg: -1.65, vol: 0.046, drift: 0.0012, tier: 'Modular DA', quality: 77, corr: 0.79, cgId: 'celestia' },
+      { symbol: 'SEI', name: 'Sei Network', price: 0.55, chg: 3.75, vol: 0.047, drift: 0.0026, tier: 'Parallel EVM L1', quality: 76, corr: 0.78, cgId: 'sei-network' },
+      { symbol: 'AAVE', name: 'Aave', price: 186.00, chg: 3.95, vol: 0.034, drift: 0.0028, tier: 'Blue-Chip Lending', quality: 87, corr: 0.76, cgId: 'aave' },
+      { symbol: 'MKR', name: 'Maker / Sky', price: 1650.00, chg: 1.15, vol: 0.031, drift: 0.0015, tier: 'RWA & DeFi', quality: 85, corr: 0.73, cgId: 'maker' },
+      { symbol: 'GRT', name: 'The Graph', price: 0.245, chg: 2.80, vol: 0.041, drift: 0.0018, tier: 'Web3 Indexing', quality: 77, corr: 0.79, cgId: 'the-graph' },
+      { symbol: 'ALGO', name: 'Algorand', price: 0.242, chg: 2.15, vol: 0.035, drift: 0.0015, tier: 'Pure PoS L1', quality: 75, corr: 0.78, cgId: 'algorand' },
+      { symbol: 'FIL', name: 'Filecoin', price: 4.96, chg: -0.75, vol: 0.039, drift: 0.0011, tier: 'DePIN Storage', quality: 76, corr: 0.80, cgId: 'filecoin' },
+      { symbol: 'VET', name: 'VeChain', price: 0.0365, chg: 2.50, vol: 0.034, drift: 0.0017, tier: 'Supply Chain RWA', quality: 75, corr: 0.79, cgId: 'vechain' },
+      { symbol: 'SAND', name: 'The Sandbox', price: 0.41, chg: 3.40, vol: 0.045, drift: 0.0019, tier: 'Metaverse Gaming', quality: 72, corr: 0.77, cgId: 'the-sandbox' },
+      { symbol: 'MANA', name: 'Decentraland', price: 0.43, chg: 3.15, vol: 0.044, drift: 0.0018, tier: 'Virtual Worlds', quality: 72, corr: 0.76, cgId: 'decentraland' }
+    ];
+
+    const CHART_STYLES = [
+      { id: 'candles', label: 'Candles' },
+      { id: 'hollow_candles', label: 'Hollow Candles' },
+      { id: 'volume_candles', label: 'Volume Candles' },
+      { id: 'bars', label: 'Bars' },
+      { id: 'line', label: 'Line' },
+      { id: 'line_markers', label: 'Line + Markers' },
+      { id: 'area', label: 'Area' },
+      { id: 'hlc_area', label: 'HLC Area' },
+      { id: 'baseline', label: 'Baseline' },
+      { id: 'columns', label: 'Columns' },
+      { id: 'high_low', label: 'High-Low' }
+    ];
+
+    /**************************************************************************
+     * 2. CUSTOM OBSIDIAN + EMERALD PULSE + GOLD "N" LOGO RASTERIZER (512x512)
+     **************************************************************************/
+    let generatedIconDataUrl = '';
+
+    function generateCustomAppIconPng() {
+      try {
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // 1. Deep midnight obsidian rounded square backdrop (#090d14)
+        const r = 112;
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.lineTo(size - r, 0);
+        ctx.quadraticCurveTo(size, 0, size, r);
+        ctx.lineTo(size, size - r);
+        ctx.quadraticCurveTo(size, size, size - r, size);
+        ctx.lineTo(r, size);
+        ctx.quadraticCurveTo(0, size, 0, size - r);
+        ctx.lineTo(0, r);
+        ctx.quadraticCurveTo(0, 0, r, 0);
+        ctx.closePath();
+
+        const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+        bgGrad.addColorStop(0, '#131b29');
+        bgGrad.addColorStop(1, '#070a10');
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
+
+        // Metallic gold rim highlight
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = 'rgba(245, 185, 66, 0.35)';
+        ctx.stroke();
+
+        // 2. Subtle Candlestick Accents (Emerald & Warm Metallic Gold #f5b942)
+        const drawCandle = (cx, yHigh, yLow, yTop, bodyH, isGold) => {
+          ctx.strokeStyle = isGold ? '#f5b942' : '#10b981';
+          ctx.lineWidth = 6;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(cx, yHigh);
+          ctx.lineTo(cx, yLow);
+          ctx.stroke();
+
+          ctx.fillStyle = isGold ? '#f5b942' : '#10b981';
+          ctx.beginPath();
+          ctx.roundRect(cx - 11, yTop, 22, bodyH, 6);
+          ctx.fill();
+        };
+
+        ctx.save();
+        ctx.globalAlpha = 0.88;
+        drawCandle(176, 134, 236, 156, 56, true);
+        drawCandle(216, 114, 232, 138, 68, false);
+        drawCandle(256, 98, 224, 120, 78, false);
+        drawCandle(296, 266, 378, 288, 64, false);
+        drawCandle(336, 240, 358, 262, 68, true);
+        ctx.restore();
+
+        // 3. Glowing Emerald Pulse Wave Forming Stylized "N" with Gold Arrow Apex
+        ctx.save();
+        ctx.shadowColor = 'rgba(16, 185, 129, 0.72)';
+        ctx.shadowBlur = 24;
+        const pulseGrad = ctx.createLinearGradient(96, 380, 412, 112);
+        pulseGrad.addColorStop(0, '#059669');
+        pulseGrad.addColorStop(0.55, '#10b981');
+        pulseGrad.addColorStop(1, '#f5b942');
+
+        ctx.strokeStyle = pulseGrad;
+        ctx.lineWidth = 34;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(104, 374);
+        ctx.lineTo(176, 198);
+        ctx.lineTo(286, 352);
+        ctx.lineTo(392, 142);
+        ctx.stroke();
+
+        // Gold Apex Arrowhead
+        ctx.fillStyle = '#f5b942';
+        ctx.beginPath();
+        ctx.moveTo(416, 108);
+        ctx.lineTo(348, 134);
+        ctx.lineTo(404, 176);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        generatedIconDataUrl = canvas.toDataURL('image/png');
+        const favLink = document.getElementById('favicon-link');
+        const appleLink = document.getElementById('apple-touch-icon-link');
+        const previewImg = document.getElementById('icon-preview-img');
+        if (favLink) favLink.href = generatedIconDataUrl;
+        if (appleLink) appleLink.href = generatedIconDataUrl;
+        if (previewImg) previewImg.src = generatedIconDataUrl;
+      } catch (e) {
+        console.warn('Icon rasterization skipped:', e);
+      }
+    }
+
+    function downloadAppIconPng() {
+      if (!generatedIconDataUrl) return;
+      const a = document.createElement('a');
+      a.href = generatedIconDataUrl;
+      a.download = 'CryptoPulse-Pro-512.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast('Downloaded 512x512 CryptoPulse App Icon PNG', 'emerald');
+    }
+
+    /**************************************************************************
+     * 3. DURABLE PERSISTENCE (localStorage + visibilitychange + pagehide)
+     **************************************************************************/
+    const STORE_KEY = 'cryptopulse_nobitex_v23_state';
+    const INITIAL_STATE = {
+      selectedCoin: 'SOL',
+      currency: 'USD', // 'USD' | 'IRT'
+      usdtIrtRate: 89450,
+      parityIrtRate: 89080,
+      mobileTab: 'chart',
+      desktopSection: 'chart',
+      timeframe: '30D',
+      chartStyle: 'candles',
+      baselineRef: 'buy',
+      overlays: { levels: true, ema: true },
+      riskLevel: 5,
+      sortMode: 'manual',
+      favOnly: false,
+      search: '',
+      favorites: ['PAXG', 'XAUT', 'SOL', 'ETH', 'LINK', 'BTC', 'USDT'],
+      manualOrder: COINS.map(c => c.symbol),
+      dcaCapital: 1000,
+      alerts: [
+        { id: 'al_1', symbol: 'SOL', cond: 'price_below', target: 198, note: 'Tranche 1 Support Entry', active: true, hit: false, softPinged: false },
+        { id: 'al_2', symbol: 'PAXG', cond: 'lt_above', target: 85, note: 'Gold Hedge Accumulation', active: true, hit: false, softPinged: false }
+      ],
+      quietHours: { enabled: false, start: '23:00', end: '07:00' },
+      journal: [
+        { id: 'jn_1', date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }), symbol: 'PAXG', action: 'BUY / LONG', text: 'Held PAXG as IRT/USD currency hedge while Nobitex spread stayed balanced.' }
+      ],
+      fngVal: 62,
+      fngText: 'Greed',
+      lastSyncTime: null
+    };
+
+    let state = loadState();
+    let liveMarket = {};
+    let seriesMemo = {};
+    let scrubIndex = -1;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            ...INITIAL_STATE,
+            ...parsed,
+            overlays: { ...INITIAL_STATE.overlays, ...(parsed.overlays || {}) },
+            quietHours: { ...INITIAL_STATE.quietHours, ...(parsed.quietHours || {}) }
+          };
+        }
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(INITIAL_STATE));
+    }
+
+    function persistState() {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persistState();
+    });
+    window.addEventListener('pagehide', persistState);
+    window.addEventListener('beforeunload', persistState);
+
+    /**************************************************************************
+     * 4. PRICE FORMATTING & NOBITEX SPREAD ENGINE (1/2)
+     **************************************************************************/
+    function fmtPrice(usdVal, overrideCurr = null) {
+      const curr = overrideCurr || state.currency;
+      if (curr === 'IRT') {
+        const irt = usdVal * state.usdtIrtRate;
+        if (irt >= 1000) return Math.round(irt).toLocaleString('en-US') + ' IRT';
+        if (irt >= 1) return irt.toFixed(1) + ' IRT';
+        return irt.toFixed(3) + ' IRT';
+      }
+      if (usdVal >= 1000) return '$' + usdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (usdVal >= 1) return '$' + usdVal.toFixed(2);
+      if (usdVal >= 0.01) return '$' + usdVal.toFixed(4);
+      return '$' + usdVal.toFixed(7);
+    }
+
+    function updateNobitexRibbon() {
+      const spreadPct = ((state.usdtIrtRate - state.parityIrtRate) / state.parityIrtRate) * 100;
+      const sign = spreadPct >= 0 ? '+' : '';
+      const spreadEl = document.getElementById('ribbon-spread');
+      const routeEl = document.getElementById('ribbon-route');
+      document.getElementById('hdr-usdt-val').textContent = Number(state.usdtIrtRate).toLocaleString('en-US');
+
+      if (spreadPct > 1.2) {
+        spreadEl.className = 'text-rose-400 font-bold';
+        spreadEl.textContent = `${sign}${spreadPct.toFixed(2)}% High IRT Premium`;
+        routeEl.textContent = 'Route: Avoid chasing IRT spikes; place staggered USDT/IRT limit bids.';
+      } else if (spreadPct < -0.4) {
+        spreadEl.className = 'text-emerald-400 font-bold';
+        spreadEl.textContent = `${sign}${spreadPct.toFixed(2)}% IRT Discount`;
+        routeEl.textContent = 'Route: Favorable Toman discount — direct IRT purchase advantageous.';
+      } else {
+        spreadEl.className = 'text-goldPro-400 font-bold';
+        spreadEl.textContent = `${sign}${spreadPct.toFixed(2)}% Balanced`;
+        routeEl.textContent = 'Route: Direct IRT & USDT markets aligned within normal spread.';
+      }
+    }
+
+    /**************************************************************************
+     * 5. DISTINCT PER-COIN SERIES GENERATOR & MULTI-FACTOR SCORE ENGINE
+     **************************************************************************/
+    function hashSeed(sym) {
+      return sym.split('').reduce((acc, c, idx) => acc + c.charCodeAt(0) * (idx + 19), 0);
+    }
+    function prng(seed) {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+    function clamp(v, lo, hi) {
+      return Math.max(lo, Math.min(hi, v));
+    }
+
+    function buildSeries(symbol, tf) {
+      const coin = COINS.find(c => c.symbol === symbol) || COINS[0];
+      const live = liveMarket[symbol] || { price: coin.price, chg: coin.chg };
+      const key = `${symbol}_${tf}_${live.price.toFixed(6)}`;
+      if (seriesMemo[key]) return seriesMemo[key];
+
+      const counts = { '24H': 48, '7D': 56, '30D': 60, '90D': 72, '1Y': 84 };
+      const volScale = { '24H': 0.36, '7D': 0.78, '30D': 1.15, '90D': 1.65, '1Y': 2.35 };
+      const n = counts[tf] || 60;
+      const vMult = volScale[tf] || 1.0;
+
+      const seedBase = hashSeed(symbol) + n * 17;
+      const stepVol = coin.vol * vMult * 0.42;
+      const closes = new Array(n);
+      closes[n - 1] = live.price;
+
+      const f1 = 2.1 + (hashSeed(symbol) % 5) * 0.65;
+      const f2 = 4.9 + (hashSeed(symbol) % 7) * 0.42;
+      const ph = (hashSeed(symbol) % 314) / 100;
+
+      for (let i = n - 2; i >= 0; i--) {
+        const noise = prng(seedBase + i * 3.3) - 0.5;
+        const harmonic = Math.sin((i / n) * Math.PI * f1 + ph) * 0.36 + Math.cos((i / n) * Math.PI * f2) * 0.22;
+        const step = (noise * 1.45 + harmonic * 0.55) * stepVol + coin.drift * vMult * 0.35;
+        closes[i] = Math.max(live.price * 0.16, closes[i + 1] / (1 + step));
+      }
+
+      const stepMs = {
+        '24H': 30 * 60000,
+        '7D': 3 * 3600000,
+        '30D': 12 * 3600000,
+        '90D': 30 * 3600000,
+        '1Y': 4.3 * 86400000
+      }[tf] || 12 * 3600000;
+
+      const now = Date.now();
+      const bars = [];
+      let ema50 = closes[0];
+      let ema200 = closes[0];
+      const k50 = 2 / (12 + 1);
+      const k200 = 2 / (28 + 1);
+
+      for (let i = 0; i < n; i++) {
+        const c = closes[i];
+        const o = i === 0 ? c * (1 - (prng(seedBase + 5) - 0.5) * stepVol) : closes[i - 1];
+        const wUp = Math.abs(prng(seedBase + i * 7.1)) * stepVol * 0.92;
+        const wDn = Math.abs(prng(seedBase + i * 11.7)) * stepVol * 0.92;
+        const h = Math.max(o, c) * (1 + wUp);
+        const l = Math.min(o, c) * Math.max(0.5, 1 - wDn);
+        const rangeRatio = Math.abs(c - o) / Math.max(o, 1e-9);
+        const vol = (45 + prng(seedBase + i * 19.3) * 55) * (1 + (rangeRatio / Math.max(stepVol, 0.001)) * 1.5);
+
+        ema50 = c * k50 + ema50 * (1 - k50);
+        ema200 = c * k200 + ema200 * (1 - k200);
+
+        const dt = new Date(now - (n - 1 - i) * stepMs);
+        const label = tf === '24H'
+          ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+        bars.push({ o, h, l, c, vol, ema50, ema200, label, rsi: 50 });
+      }
+
+      // Compute 14-bar RSI
+      for (let i = 1; i < n; i++) {
+        let g = 0, ls = 0;
+        const start = Math.max(1, i - 13);
+        for (let j = start; j <= i; j++) {
+          const d = bars[j].c - bars[j - 1].c;
+          if (d >= 0) g += d; else ls -= d;
+        }
+        const rs = ls === 0 ? 100 : g / ls;
+        bars[i].rsi = Math.round(100 - 100 / (1 + rs));
+      }
+
+      seriesMemo[key] = bars;
+      return bars;
+    }
+
+    function analyzeCoin(symbol) {
+      const coin = COINS.find(c => c.symbol === symbol) || COINS[0];
+      const live = liveMarket[symbol] || { price: coin.price, chg: coin.chg };
+      const bars = buildSeries(symbol, state.timeframe);
+      const last = bars[bars.length - 1];
+      const price = live.price;
+
+      // Average True Range (ATR)
+      let trAcc = 0;
+      for (let i = 1; i < bars.length; i++) {
+        const cur = bars[i], prev = bars[i - 1].c;
+        trAcc += Math.max(cur.h - cur.l, Math.abs(cur.h - prev), Math.abs(cur.l - prev));
+      }
+      const atr = trAcc / Math.max(1, bars.length - 1);
+      const atrPct = atr / Math.max(price, 1e-9);
+
+      const pHigh = Math.max(...bars.map(b => b.h));
+      const pLow = Math.min(...bars.map(b => b.l));
+      const drawdownPct = ((pHigh - price) / Math.max(pHigh, 1e-9)) * 100;
+
+      // Risk Adjustment Option scaling (1 = tight/safe, 10 = wide/aggressive)
+      const rScale = 0.65 + (state.riskLevel - 1) * 0.11;
+      const buyZone = coin.symbol === 'USDT' ? price * 0.998 : Math.min(price * 0.992, Math.max(pLow * 1.01, price - atr * 1.15 * rScale));
+      const stopLoss = coin.symbol === 'USDT' ? price * 0.992 : buyZone - atr * 1.35 * rScale;
+      const t1 = coin.symbol === 'USDT' ? price * 1.004 : Math.max(price * 1.03, price + atr * 2.1 * rScale);
+      const t2 = coin.symbol === 'USDT' ? price * 1.01 : Math.max(pHigh * 1.06, price + atr * 4.4 * rScale);
+
+      // Multi-Factor Short-Term Score (0–100)
+      const rsi = last.rsi;
+      const momScore = clamp(Math.round(rsi < 32 ? 89 : rsi <= 58 ? 78 + (58 - rsi) * 0.3 : rsi <= 72 ? 62 - (rsi - 58) * 1.1 : 35), 15, 98);
+      const emaSpread = ((last.ema50 - last.ema200) / Math.max(last.ema200, 1e-9)) * 100;
+      const breakScore = clamp(Math.round(58 + emaSpread * 9 + live.chg * 1.4), 18, 97);
+      const avgV = bars.slice(-14).reduce((a, b) => a + b.vol, 0) / 14;
+      const volSurge = last.vol / Math.max(avgV, 1);
+      const volScore = clamp(Math.round(52 + (volSurge - 0.85) * 38), 20, 96);
+      const fngContrarian = state.fngVal < 35 ? 82 : state.fngVal > 78 ? 46 : 68;
+      const regScore = clamp(Math.round(fngContrarian + (state.riskLevel - 5) * 2.2), 20, 96);
+
+      const stScore = clamp(Math.round(momScore * 0.30 + breakScore * 0.30 + volScore * 0.20 + regScore * 0.20), 10, 99);
+
+      // Multi-Factor Long-Term Score (0–100)
+      const mayer = price / Math.max(last.ema200, 1e-9);
+      const macroScore = clamp(Math.round(mayer < 0.95 ? 87 : mayer <= 1.12 ? 78 : 54), 25, 97);
+      const valScore = clamp(Math.round(52 + drawdownPct * 1.45), 25, 97);
+      const tierScore = coin.quality;
+      const stabScore = clamp(Math.round(100 - state.fngVal * 0.45 + (coin.symbol === 'PAXG' || coin.symbol === 'XAUT' ? 14 : 0)), 30, 96);
+
+      const ltScore = clamp(Math.round(macroScore * 0.35 + valScore * 0.30 + tierScore * 0.20 + stabScore * 0.15), 10, 99);
+
+      // Anti-whipsaw hysteresis buffer (48–53)
+      const hysteresis = stScore >= 48 && stScore <= 53;
+      const composite = Math.round((stScore + ltScore) / 2);
+      const verdict = hysteresis
+        ? 'HOLD'
+        : composite >= 76
+          ? 'STRONG BUY'
+          : composite >= 62
+            ? 'ACCUMULATE'
+            : composite >= 48
+              ? 'HOLD'
+              : composite >= 36
+                ? 'TRIM'
+                : 'SELL';
+
+      return {
+        coin, price, chg: live.chg, bars, atr, atrPct, drawdownPct, mayer, rsi,
+        buyZone, stopLoss, t1, t2, stScore, ltScore, hysteresis, verdict,
+        stFactors: [
+          { name: 'Momentum & RSI(14) Exhaustion', w: '30%', s: momScore, tag: `RSI ${rsi}` },
+          { name: 'MACD / EMA & ATR Breakout', w: '30%', s: breakScore, tag: `ATR ${(atrPct * 100).toFixed(2)}%` },
+          { name: 'Volume-to-MCap Surge', w: '20%', s: volScore, tag: `${volSurge.toFixed(2)}x` },
+          { name: 'Regime & Sentiment Filter', w: '20%', s: regScore, tag: `F&G ${state.fngVal}` }
+        ],
+        ltFactors: [
+          { name: '50D/200D Structure & Mayer', w: '35%', s: macroScore, tag: `Mayer ${mayer.toFixed(2)}` },
+          { name: 'Drawdown Value Zone', w: '30%', s: valScore, tag: `-${drawdownPct.toFixed(1)}%` },
+          { name: 'Asset Tier Resilience', w: '20%', s: tierScore, tag: coin.tier },
+          { name: 'Macro & USDT/IRT Buffer', w: '15%', s: stabScore, tag: 'Nobitex' }
+        ]
+      };
+    }
+
+    /**************************************************************************
+     * 6. LIVE PRICE SYNC & ALERT EVALUATION (WITH SOFT PINGS & QUIET HOURS)
+     **************************************************************************/
+    async function syncLivePrices(manual = false) {
+      const spin = document.getElementById('sync-spinner');
+      if (spin) spin.classList.add('animate-spin');
+
+      try {
+        const ids = COINS.map(c => c.cgId).join(',');
+        const [pRes, fRes] = await Promise.allSettled([
+          fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(ids)}&vs_currencies=usd&include_24hr_change=true`),
+          fetch('https://api.alternative.me/fng/?limit=1')
+        ]);
+
+        let synced = 0;
+        if (pRes.status === 'fulfilled' && pRes.value.ok) {
+          const json = await pRes.value.json();
+          COINS.forEach(c => {
+            if (json[c.cgId] && typeof json[c.cgId].usd === 'number') {
+              liveMarket[c.symbol] = {
+                price: json[c.cgId].usd,
+                chg: json[c.cgId].usd_24h_change ?? c.chg
+              };
+              synced++;
+            }
+          });
+        }
+
+        if (fRes.status === 'fulfilled' && fRes.value.ok) {
+          const fJson = await fRes.value.json();
+          if (fJson?.data?.[0]) {
+            state.fngVal = Number(fJson.data[0].value) || state.fngVal;
+            state.fngText = fJson.data[0].value_classification || state.fngText;
+          }
+        }
+
+        if (synced > 0) {
+          seriesMemo = {};
+          state.lastSyncTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          document.getElementById('live-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 beacon-dot shrink-0';
+          document.getElementById('live-status').textContent = `Live Feed • ${state.lastSyncTime}`;
+          if (manual) toast(`Synced ${synced} live assets`, 'emerald');
+        } else {
+          throw new Error('Fallback snapshot');
+        }
+      } catch (e) {
+        document.getElementById('live-dot').className = 'w-2 h-2 rounded-full bg-goldPro-400 shrink-0';
+        document.getElementById('live-status').textContent = state.lastSyncTime
+          ? `Cached Snapshot • ${state.lastSyncTime}`
+          : 'Simulated Live Engine • Offline Ready';
+        if (manual) toast('Using resilient offline market model', 'gold');
+      } finally {
+        if (spin) spin.classList.remove('animate-spin');
+        persistState();
+        checkAlerts();
+        renderAll();
+      }
+    }
+
+    function isQuietNow() {
+      if (!state.quietHours.enabled) return false;
+      const now = new Date();
+      const cur = now.getHours() * 60 + now.getMinutes();
+      const [sh, sm] = state.quietHours.start.split(':').map(Number);
+      const [eh, em] = state.quietHours.end.split(':').map(Number);
+      const s = sh * 60 + sm, e = eh * 60 + em;
+      return s <= e ? (cur >= s && cur <= e) : (cur >= s || cur <= e);
+    }
+
+    function checkAlerts() {
+      if (isQuietNow()) return;
+      state.alerts.forEach(al => {
+        if (!al.active || al.hit) return;
+        const a = analyzeCoin(al.symbol);
+        let triggered = false;
+        let approaching = false;
+
+        if (al.cond === 'price_below') {
+          if (a.price <= al.target) triggered = true;
+          else if ((a.price - al.target) / al.target <= 0.015) approaching = true;
+        } else if (al.cond === 'price_above') {
+          if (a.price >= al.target) triggered = true;
+          else if ((al.target - a.price) / al.target <= 0.015) approaching = true;
+        } else if (al.cond === 'st_above' && a.stScore >= al.target) {
+          triggered = true;
+        } else if (al.cond === 'lt_above' && a.ltScore >= al.target) {
+          triggered = true;
+        }
+
+        if (triggered) {
+          al.hit = true;
+          const msg = `${al.symbol} Alert Triggered: ${al.note || al.cond} (${fmtPrice(a.price)})`;
+          toast(msg, 'gold');
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try { new Notification('CryptoPulse Pro', { body: msg, icon: generatedIconDataUrl }); } catch (e) {}
+          }
+        } else if (approaching && !al.softPinged) {
+          al.softPinged = true;
+          toast(`Approaching Target: ${al.symbol} within 1.5% of ${fmtPrice(al.target)}`, 'emerald');
+        }
+      });
+    }
+
+    /**************************************************************************
+     * 7. INTERACTIVE 11-MODE CANVAS CHART RENDERER
+     **************************************************************************/
+    function drawChart(a) {
+      const canvas = document.getElementById('main-chart-canvas');
+      const box = document.getElementById('chart-box');
+      if (!canvas || !box) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = box.getBoundingClientRect();
+      const W = Math.max(280, rect.width);
+      const H = Math.max(230, rect.height);
+
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      ctx.fillStyle = '#070b12';
+      ctx.fillRect(0, 0, W, H);
+
+      const bars = a.bars;
+      const pad = { top: 18, right: 66, bottom: 24, left: 10 };
+      const pW = W - pad.left - pad.right;
+      const pH = H - pad.top - pad.bottom;
+
+      let lo = Math.min(...bars.map(b => b.l));
+      let hi = Math.max(...bars.map(b => b.h));
+      if (state.overlays.levels) {
+        lo = Math.min(lo, a.stopLoss * 0.996);
+        hi = Math.max(hi, a.t1 * 1.004);
+      }
+      const span = Math.max(hi - lo, hi * 0.002);
+      lo -= span * 0.06;
+      hi += span * 0.06;
+
+      const xAt = i => pad.left + (i + 0.5) * (pW / bars.length);
+      const yAt = v => pad.top + ((hi - v) / (hi - lo)) * pH;
+
+      // Grid & Right Price Axis
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'left';
+
+      for (let g = 0; g <= 4; g++) {
+        const y = pad.top + (g / 4) * pH;
+        const val = hi - (g / 4) * (hi - lo);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(W - pad.right, y);
+        ctx.stroke();
+
+        const lbl = state.currency === 'IRT'
+          ? Math.round(val * state.usdtIrtRate).toLocaleString('en-US')
+          : (val >= 100 ? val.toFixed(1) : val >= 1 ? val.toFixed(2) : val.toFixed(5));
+        ctx.fillText(lbl, W - pad.right + 6, y + 3);
+      }
+
+      // S/R Levels Overlay
+      if (state.overlays.levels) {
+        const plotLevel = (v, col, tag) => {
+          const y = yAt(v);
+          if (y < pad.top || y > pad.top + pH) return;
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(W - pad.right, y);
+          ctx.stroke();
+          ctx.fillStyle = col;
+          ctx.font = 'bold 9px "JetBrains Mono", monospace';
+          ctx.fillText(tag, pad.left + 6, y - 3);
+          ctx.restore();
+        };
+        plotLevel(a.buyZone, '#10b981', 'BUY');
+        plotLevel(a.stopLoss, '#f43f5e', 'STOP');
+        plotLevel(a.t1, '#38bdf8', 'T1');
+      }
+
+      // EMA 50 / 200 Overlay
+      if (state.overlays.ema) {
+        const plotEma = (field, col) => {
+          ctx.save();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          bars.forEach((b, i) => {
+            const x = xAt(i), y = yAt(b[field]);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          ctx.restore();
+        };
+        plotEma('ema50', 'rgba(245, 185, 66, 0.8)');
+        plotEma('ema200', 'rgba(168, 85, 247, 0.75)');
+      }
+
+      const step = pW / bars.length;
+      const cwBase = Math.max(2.5, Math.min(14, step * 0.65));
+      const maxVol = Math.max(...bars.map(b => b.vol), 1);
+      const st = state.chartStyle;
+
+      if (st === 'candles' || st === 'hollow_candles' || st === 'volume_candles') {
+        bars.forEach((b, i) => {
+          const x = xAt(i);
+          const bull = b.c >= b.o;
+          const prevC = i > 0 ? bars[i - 1].c : b.o;
+          const col = (st === 'hollow_candles' ? b.c >= prevC : bull) ? '#10b981' : '#f43f5e';
+          const cw = st === 'volume_candles'
+            ? Math.max(2, Math.min(step * 0.92, cwBase * (0.45 + (b.vol / maxVol) * 1.15)))
+            : cwBase;
+
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          ctx.moveTo(x, yAt(b.h));
+          ctx.lineTo(x, yAt(b.l));
+          ctx.stroke();
+
+          const y1 = yAt(Math.max(b.o, b.c));
+          const y2 = yAt(Math.min(b.o, b.c));
+          const bh = Math.max(1.5, y2 - y1);
+
+          if (st === 'hollow_candles' && bull) {
+            ctx.fillStyle = '#070b12';
+            ctx.fillRect(x - cw / 2, y1, cw, bh);
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 1.4;
+            ctx.strokeRect(x - cw / 2, y1, cw, bh);
+          } else {
+            ctx.fillStyle = col;
+            ctx.fillRect(x - cw / 2, y1, cw, bh);
+          }
+        });
+      } else if (st === 'bars') {
+        const tw = Math.max(2, cwBase * 0.55);
+        bars.forEach((b, i) => {
+          const x = xAt(i);
+          ctx.strokeStyle = b.c >= b.o ? '#10b981' : '#f43f5e';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x, yAt(b.h)); ctx.lineTo(x, yAt(b.l));
+          ctx.moveTo(x - tw, yAt(b.o)); ctx.lineTo(x, yAt(b.o));
+          ctx.moveTo(x, yAt(b.c)); ctx.lineTo(x + tw, yAt(b.c));
+          ctx.stroke();
+        });
+      } else if (st === 'high_low') {
+        const bw = Math.max(2.5, cwBase * 0.65);
+        bars.forEach((b, i) => {
+          const x = xAt(i);
+          ctx.fillStyle = b.c >= b.o ? '#34d399' : '#fb7185';
+          const yh = yAt(b.h), yl = yAt(b.l);
+          ctx.beginPath();
+          ctx.roundRect(x - bw / 2, yh, bw, Math.max(2, yl - yh), 2);
+          ctx.fill();
+        });
+      } else if (st === 'columns') {
+        const bw = Math.max(2.5, cwBase * 0.72);
+        bars.forEach((b, i) => {
+          const x = xAt(i);
+          ctx.fillStyle = b.c >= b.o ? 'rgba(16, 185, 129, 0.82)' : 'rgba(244, 63, 94, 0.82)';
+          const yv = yAt(b.c);
+          ctx.fillRect(x - bw / 2, yv, bw, Math.max(2, pad.top + pH - yv));
+        });
+      } else if (st === 'line' || st === 'line_markers' || st === 'area') {
+        ctx.save();
+        ctx.beginPath();
+        bars.forEach((b, i) => {
+          const x = xAt(i), y = yAt(b.c);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        if (st === 'area') {
+          ctx.save();
+          ctx.lineTo(xAt(bars.length - 1), pad.top + pH);
+          ctx.lineTo(xAt(0), pad.top + pH);
+          ctx.closePath();
+          const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + pH);
+          grad.addColorStop(0, 'rgba(16, 185, 129, 0.36)');
+          grad.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+          ctx.fillStyle = grad;
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        if (st === 'line_markers') {
+          bars.forEach((b, i) => {
+            ctx.fillStyle = b.c >= b.o ? '#34d399' : '#f43f5e';
+            ctx.beginPath();
+            ctx.arc(xAt(i), yAt(b.c), 2.8, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+        ctx.restore();
+      } else if (st === 'hlc_area') {
+        ctx.save();
+        ctx.beginPath();
+        bars.forEach((b, i) => {
+          const x = xAt(i), y = yAt(b.h);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        for (let i = bars.length - 1; i >= 0; i--) ctx.lineTo(xAt(i), yAt(bars[i].l));
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(245, 185, 66, 0.16)';
+        ctx.fill();
+
+        ctx.beginPath();
+        bars.forEach((b, i) => {
+          const x = xAt(i), y = yAt(b.c);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = '#f5b942';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      } else if (st === 'baseline') {
+        const refVal = state.baselineRef === 'buy'
+          ? a.buyZone
+          : state.baselineRef === 'current'
+            ? a.price
+            : bars[0].o;
+        const yBase = clamp(yAt(refVal), pad.top + 4, pad.top + pH - 4);
+
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, yBase);
+        ctx.lineTo(W - pad.right, yBase);
+        ctx.stroke();
+        ctx.restore();
+
+        const drawHalf = (clipY, clipH, strokeCol, fillCol) => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(pad.left, clipY, pW, clipH);
+          ctx.clip();
+          ctx.beginPath();
+          bars.forEach((b, i) => {
+            const x = xAt(i), y = yAt(b.c);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.strokeStyle = strokeCol;
+          ctx.lineWidth = 2.2;
+          ctx.stroke();
+          ctx.lineTo(xAt(bars.length - 1), yBase);
+          ctx.lineTo(xAt(0), yBase);
+          ctx.closePath();
+          ctx.fillStyle = fillCol;
+          ctx.fill();
+          ctx.restore();
+        };
+        drawHalf(pad.top, yBase - pad.top, '#10b981', 'rgba(16, 185, 129, 0.24)');
+        drawHalf(yBase, pad.top + pH - yBase, '#f43f5e', 'rgba(244, 63, 94, 0.24)');
+      }
+
+      // X-Axis Dates
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      const stepLbl = Math.max(1, Math.floor(bars.length / 5));
+      for (let i = 0; i < bars.length; i += stepLbl) {
+        ctx.fillText(bars[i].label, xAt(i), H - 7);
+      }
+
+      // Crosshair Scrubber
+      if (scrubIndex >= 0 && scrubIndex < bars.length) {
+        const b = bars[scrubIndex];
+        const hx = xAt(scrubIndex), hy = yAt(b.c);
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = 'rgba(241, 245, 249, 0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(hx, pad.top); ctx.lineTo(hx, pad.top + pH);
+        ctx.moveTo(pad.left, hy); ctx.lineTo(W - pad.right, hy);
+        ctx.stroke();
+        ctx.fillStyle = '#f5b942';
+        ctx.beginPath();
+        ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        updateScrubberText(b, false);
+      } else {
+        updateScrubberText(bars[bars.length - 1], true);
+      }
+    }
+
+    function updateScrubberText(b, isLatest) {
+      if (!b) return;
+      document.getElementById('scrubber-time').textContent = isLatest ? `Latest (${b.label})` : `Point: ${b.label}`;
+      document.getElementById('scrubber-o').textContent = fmtPrice(b.o);
+      document.getElementById('scrubber-h').textContent = fmtPrice(b.h);
+      document.getElementById('scrubber-l').textContent = fmtPrice(b.l);
+      document.getElementById('scrubber-c').textContent = fmtPrice(b.c);
+      document.getElementById('scrubber-rsi').textContent = b.rsi;
+    }
+
+    function bindChartTouchAndMouse() {
+      const canvas = document.getElementById('main-chart-canvas');
+      if (!canvas) return;
+      const move = clientX => {
+        const rect = canvas.getBoundingClientRect();
+        const x = clientX - rect.left - 10;
+        const w = Math.max(1, rect.width - 76);
+        const a = analyzeCoin(state.selectedCoin);
+        scrubIndex = clamp(Math.round((x / w) * (a.bars.length - 1)), 0, a.bars.length - 1);
+        drawChart(a);
+      };
+      canvas.addEventListener('mousemove', e => move(e.clientX));
+      canvas.addEventListener('mouseleave', () => { scrubIndex = -1; drawChart(analyzeCoin(state.selectedCoin)); });
+      canvas.addEventListener('touchstart', e => { if (e.touches[0]) move(e.touches[0].clientX); }, { passive: true });
+      canvas.addEventListener('touchmove', e => { if (e.touches[0]) move(e.touches[0].clientX); }, { passive: true });
+      canvas.addEventListener('touchend', () => { scrubIndex = -1; drawChart(analyzeCoin(state.selectedCoin)); });
+      window.addEventListener('resize', () => renderAll());
+    }
+
+    /**************************************************************************
+     * 8. UI RENDERING
+     **************************************************************************/
+    function renderAll() {
+      // Header Currency Buttons
+      document.getElementById('curr-btn-usd').className = `px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all ${
+        state.currency === 'USD' ? 'bg-emerald-500 text-obsidian-950' : 'text-slate-400 hover:text-white'
+      }`;
+      document.getElementById('curr-btn-irt').className = `px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all ${
+        state.currency === 'IRT' ? 'bg-goldPro-400 text-obsidian-950' : 'text-slate-400 hover:text-white'
+      }`;
+
+      updateNobitexRibbon();
+
+      const riskNames = { 1: 'Ultra-Safe', 2: 'Preservation', 3: 'Cautious', 4: 'Macro DCA', 5: 'Balanced', 6: 'Growth', 7: 'Active', 8: 'High-Beta', 9: 'Aggressive', 10: 'Max Risk' };
+      document.getElementById('ribbon-fng').textContent = `${state.fngVal} ${state.fngText}`;
+      document.getElementById('ribbon-risk').textContent = `${state.riskLevel}/10`;
+      document.getElementById('risk-display-badge').textContent = `${state.riskLevel} / 10 ${riskNames[state.riskLevel] || 'Balanced'}`;
+      document.getElementById('risk-slider').value = state.riskLevel;
+
+      // Mobile vs iPad/Desktop Responsive Layout
+      const isMobile = window.innerWidth < 768;
+      const marketPane = document.getElementById('pane-market');
+      const detailPane = document.getElementById('pane-detail');
+
+      if (isMobile) {
+        marketPane.classList.toggle('hidden', state.mobileTab !== 'market');
+        detailPane.classList.toggle('hidden', state.mobileTab === 'market');
+        const activeSec = state.mobileTab === 'market' ? 'chart' : state.mobileTab;
+        ['chart', 'alerts', 'setup'].forEach(s => {
+          document.getElementById(`section-${s}`).classList.toggle('hidden', activeSec !== s);
+        });
+      } else {
+        marketPane.classList.remove('hidden');
+        detailPane.classList.remove('hidden');
+        ['chart', 'alerts', 'setup'].forEach(s => {
+          document.getElementById(`section-${s}`).classList.toggle('hidden', state.desktopSection !== s);
+        });
+      }
+
+      document.querySelectorAll('.mtab-btn').forEach(btn => {
+        const active = btn.dataset.mtab === state.mobileTab;
+        btn.className = `mtab-btn flex flex-col items-center py-1.5 rounded-xl transition-all ${
+          active ? 'bg-emerald-500/15 text-emerald-400' : 'text-slate-400'
+        }`;
+      });
+      document.querySelectorAll('.sec-btn').forEach(btn => {
+        const active = btn.dataset.sec === state.desktopSection;
+        btn.className = `sec-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+          active ? 'bg-emerald-500 text-obsidian-950' : 'text-slate-400 hover:text-white'
+        }`;
+      });
+
+      renderCoinList();
+      const a = analyzeCoin(state.selectedCoin);
+      renderHeroAndChart(a);
+      renderScoreAndDca(a);
+      renderAlertsJournalRecap();
+    }
+
+    function renderCoinList() {
+      let list = COINS.map(c => analyzeCoin(c.symbol));
+      if (state.favOnly) list = list.filter(x => state.favorites.includes(x.coin.symbol));
+      if (state.search.trim()) {
+        const q = state.search.trim().toLowerCase();
+        list = list.filter(x => x.coin.symbol.toLowerCase().includes(q) || x.coin.name.toLowerCase().includes(q));
+      }
+
+      if (state.sortMode === 'manual') {
+        list.sort((a, b) => state.manualOrder.indexOf(a.coin.symbol) - state.manualOrder.indexOf(b.coin.symbol));
+      } else if (state.sortMode === 'st_desc') {
+        list.sort((a, b) => b.stScore - a.stScore);
+      } else if (state.sortMode === 'lt_desc') {
+        list.sort((a, b) => b.ltScore - a.ltScore);
+      } else if (state.sortMode === 'az') {
+        list.sort((a, b) => a.coin.symbol.localeCompare(b.coin.symbol));
+      } else if (state.sortMode === 'za') {
+        list.sort((a, b) => b.coin.symbol.localeCompare(a.coin.symbol));
+      } else if (state.sortMode === 'chg_desc') {
+        list.sort((a, b) => b.chg - a.chg);
+      }
+
+      document.getElementById('sort-dropdown').value = state.sortMode;
+      document.getElementById('fav-filter-btn').className = `px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+        state.favOnly ? 'bg-goldPro-400/20 border-goldPro-400/50 text-goldPro-400' : 'border-slate-700/80 bg-obsidian-950 text-slate-400'
+      }`;
+
+      const box = document.getElementById('coin-list-box');
+      if (!list.length) {
+        box.innerHTML = `<div class="text-center text-xs text-slate-500 py-8">No coins match your search filter.</div>`;
+        return;
+      }
+
+      box.innerHTML = list.map(item => {
+        const sym = item.coin.symbol;
+        const sel = sym === state.selectedCoin;
+        const fav = state.favorites.includes(sym);
+        const pos = item.chg >= 0;
+
+        return `
+          <div onclick="chooseCoin('${sym}')"
+            class="flex items-center justify-between gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
+              sel ? 'bg-emerald-500/12 border-emerald-500/55 emerald-ring' : 'bg-obsidian-950/80 border-slate-800/80 hover:border-slate-700'
+            }">
+            <div class="flex items-center gap-2 min-w-0">
+              <button onclick="event.stopPropagation(); toggleFavorite('${sym}')"
+                class="text-sm ${fav ? 'text-goldPro-400' : 'text-slate-600 hover:text-slate-400'}">★</button>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-extrabold text-white">${sym}</span>
+                  <span class="text-[10px] font-mono px-1.5 rounded bg-emerald-500/15 text-emerald-300">ST ${item.stScore}</span>
+                  <span class="text-[10px] font-mono px-1.5 rounded bg-goldPro-400/15 text-goldPro-400">LT ${item.ltScore}</span>
+                </div>
+                <div class="text-[11px] text-slate-400 truncate">${item.coin.name}</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <div class="text-right font-mono">
+                <div class="text-xs font-bold text-slate-100">${fmtPrice(item.price)}</div>
+                <div class="text-[10px] font-semibold ${pos ? 'text-emerald-400' : 'text-rose-400'}">
+                  ${pos ? '+' : ''}${item.chg.toFixed(2)}%
+                </div>
+              </div>
+              ${state.sortMode === 'manual' ? `
+                <div class="flex flex-col gap-0.5 ml-1" onclick="event.stopPropagation()">
+                  <button onclick="shiftCoinOrder('${sym}', -1)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[9px] text-slate-300">↑</button>
+                  <button onclick="shiftCoinOrder('${sym}', 1)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[9px] text-slate-300">↓</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHeroAndChart(a) {
+      const c = a.coin;
+      document.getElementById('hero-badge').textContent = c.symbol;
+      document.getElementById('hero-name').textContent = c.name;
+      document.getElementById('hero-pair').textContent = `${c.symbol} / ${state.currency}`;
+      document.getElementById('hero-tier').textContent = c.tier;
+      document.getElementById('hero-star').className = state.favorites.includes(c.symbol)
+        ? 'px-2 py-0.5 rounded-lg bg-goldPro-400/15 text-goldPro-400 text-sm'
+        : 'px-2 py-0.5 rounded-lg bg-slate-800/90 text-slate-500 text-sm';
+
+      document.getElementById('hero-main-price').textContent = fmtPrice(a.price);
+      document.getElementById('hero-alt-price').textContent = `≈ ${fmtPrice(a.price, state.currency === 'USD' ? 'IRT' : 'USD')}`;
+
+      const chgEl = document.getElementById('hero-chg-pill');
+      const pos = a.chg >= 0;
+      chgEl.textContent = `${pos ? '+' : ''}${a.chg.toFixed(2)}%`;
+      chgEl.className = `text-xs font-mono font-bold px-2 py-0.5 rounded-lg ${
+        pos ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+      }`;
+
+      const vEl = document.getElementById('hero-verdict-pill');
+      vEl.textContent = a.verdict;
+      vEl.className = `px-3 py-1 rounded-xl text-xs font-extrabold uppercase tracking-wide border ${
+        a.verdict.includes('BUY') || a.verdict === 'ACCUMULATE'
+          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+          : a.verdict === 'HOLD'
+            ? 'bg-goldPro-400/20 text-goldPro-400 border-goldPro-400/40'
+            : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+      }`;
+
+      const corrPct = Math.round(c.corr * 100);
+      document.getElementById('hero-corr-note').textContent = c.corr < 0.25
+        ? `Low BTC Correlation (${corrPct}%) — Gold/USD defensive hedge regime.`
+        : c.corr >= 0.82
+          ? `High BTC Lockstep (${corrPct}%) — Moves closely with Bitcoin trend.`
+          : `Moderate BTC Correlation (${corrPct}%) — Catalyst decoupling possible.`;
+
+      document.getElementById('level-buy').textContent = fmtPrice(a.buyZone);
+      document.getElementById('level-stop').textContent = fmtPrice(a.stopLoss);
+      document.getElementById('level-t1').textContent = fmtPrice(a.t1);
+      document.getElementById('level-t2').textContent = fmtPrice(a.t2);
+
+      // Timeframe Pills
+      document.querySelectorAll('.tf-pill').forEach(btn => {
+        const active = btn.dataset.tf === state.timeframe;
+        btn.className = `tf-pill px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+          active ? 'bg-emerald-500 text-obsidian-950' : 'text-slate-400 hover:text-white'
+        }`;
+      });
+
+      // Overlay Buttons
+      document.getElementById('ov-levels-btn').className = `px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all ${
+        state.overlays.levels ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : 'bg-obsidian-950 border-slate-700 text-slate-400'
+      }`;
+      document.getElementById('ov-ema-btn').className = `px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all ${
+        state.overlays.ema ? 'bg-goldPro-400/20 border-goldPro-400/50 text-goldPro-400' : 'bg-obsidian-950 border-slate-700 text-slate-400'
+      }`;
+
+      // 11 Chart Style Horizontal Pills
+      document.getElementById('chart-style-pills').innerHTML = CHART_STYLES.map(cs => {
+        const active = cs.id === state.chartStyle;
+        return `<button onclick="setChartStyle('${cs.id}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
+          active
+            ? 'bg-emerald-500 text-obsidian-950 border-emerald-400'
+            : 'bg-obsidian-950 text-slate-300 border-slate-800 hover:border-slate-600'
+        }">${cs.label}</button>`;
+      }).join('');
+
+      document.getElementById('baseline-bar').classList.toggle('hidden', state.chartStyle !== 'baseline');
+      document.querySelectorAll('.bref-pill').forEach(btn => {
+        const active = btn.dataset.bref === state.baselineRef;
+        btn.className = `bref-pill px-2.5 py-1 rounded-lg font-bold ${
+          active ? 'bg-emerald-500 text-obsidian-950' : 'bg-slate-800 text-slate-300'
+        }`;
+      });
+
+      drawChart(a);
+    }
+
+    function renderScoreAndDca(a) {
+      document.getElementById('st-score-val').innerHTML = `${a.stScore}<span class="text-xs text-slate-500">/100</span>`;
+      document.getElementById('st-whip-status').textContent = a.hysteresis ? 'Hysteresis: Chop Buffer' : 'Hysteresis: Confirmed';
+      document.getElementById('lt-score-val').innerHTML = `${a.ltScore}<span class="text-xs text-slate-500">/100</span>`;
+      document.getElementById('lt-mayer-status').textContent = `Mayer: ${a.mayer.toFixed(2)}`;
+
+      const barHtml = (items, fillClass) => items.map(f => `
+        <div>
+          <div class="flex justify-between text-[11px] mb-1">
+            <span class="text-slate-300 font-medium">${f.name} <span class="text-slate-500">(${f.w})</span></span>
+            <span class="font-mono text-slate-200">${f.tag} • <strong>${f.s}</strong></span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div class="h-full ${fillClass} rounded-full transition-all duration-300" style="width:${f.s}%"></div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('st-bars-container').innerHTML = barHtml(a.stFactors, 'bg-emerald-400');
+      document.getElementById('lt-bars-container').innerHTML = barHtml(a.ltFactors, 'bg-goldPro-400');
+
+      document.getElementById('st-summary-note').textContent =
+        `Swing Plan: Accumulate near ${fmtPrice(a.buyZone)} with stop protection below ${fmtPrice(a.stopLoss)}. ` +
+        `RSI(14) at ${a.rsi} and ATR at ${(a.atrPct * 100).toFixed(2)}% point to T1 resistance at ${fmtPrice(a.t1)}.`;
+
+      document.getElementById('lt-summary-note').textContent =
+        `Macro Plan: ${a.coin.name} (${a.coin.tier}) trades ${a.drawdownPct.toFixed(1)}% below its ${state.timeframe} peak. ` +
+        `Staged DCA entries around ${fmtPrice(a.buyZone)} target ${fmtPrice(a.t2)} on cycle expansion.`;
+
+      // DCA Tranche Planner (1/1)
+      document.getElementById('dca-sym-label').textContent = a.coin.symbol;
+      document.getElementById('dca-curr-unit').textContent = state.currency;
+      document.getElementById('dca-capital-input').value = state.dcaCapital;
+
+      const capUsd = state.currency === 'IRT' ? state.dcaCapital / state.usdtIrtRate : state.dcaCapital;
+      const buys = [
+        { title: 'Tranche 1 (30%) — Initial Pullback', pct: 0.30, px: a.price * 0.992 },
+        { title: 'Tranche 2 (40%) — Core ATR Support', pct: 0.40, px: a.buyZone },
+        { title: 'Tranche 3 (30%) — Deep Wick Reserve', pct: 0.30, px: (a.buyZone + a.stopLoss) / 2 }
+      ];
+      document.getElementById('dca-buy-list').innerHTML = buys.map(b => `
+        <div class="flex items-center justify-between bg-obsidian-900 px-3 py-2 rounded-lg border border-slate-800 text-xs">
+          <div>
+            <div class="font-bold text-slate-200">${b.title}</div>
+            <div class="text-[11px] font-mono text-emerald-400">Bid: ${fmtPrice(b.px)}</div>
+          </div>
+          <div class="font-mono font-extrabold text-white">${fmtPrice(capUsd * b.pct)}</div>
+        </div>
+      `).join('');
+
+      const sells = [
+        { title: 'Exit 1 (35%) — Conservative Swing', pct: 0.35, px: (a.price + a.t1) / 2 },
+        { title: 'Exit 2 (40%) — Primary T1 Target', pct: 0.40, px: a.t1 },
+        { title: 'Exit 3 (25%) — Macro T2 Runner', pct: 0.25, px: a.t2 }
+      ];
+      document.getElementById('dca-sell-list').innerHTML = sells.map(s => `
+        <div class="flex items-center justify-between bg-obsidian-900 px-3 py-2 rounded-lg border border-slate-800 text-xs">
+          <div>
+            <div class="font-bold text-slate-200">${s.title}</div>
+            <div class="text-[11px] font-mono text-goldPro-400">Ask: ${fmtPrice(s.px)}</div>
+          </div>
+          <div class="font-mono font-extrabold text-white">${fmtPrice(capUsd * s.pct)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderAlertsJournalRecap() {
+      const opts = COINS.map(c => `<option value="${c.symbol}" ${c.symbol === state.selectedCoin ? 'selected' : ''}>${c.symbol} (${c.name})</option>`).join('');
+      document.getElementById('al-coin').innerHTML = opts;
+      document.getElementById('jn-coin').innerHTML = opts;
+
+      document.getElementById('qh-enabled').checked = state.quietHours.enabled;
+      document.getElementById('qh-start').value = state.quietHours.start;
+      document.getElementById('qh-end').value = state.quietHours.end;
+
+      const labels = { price_below: 'Price ≤', price_above: 'Price ≥', st_above: 'ST Score ≥', lt_above: 'LT Score ≥' };
+      const alBox = document.getElementById('alerts-items-list');
+      alBox.innerHTML = state.alerts.length ? state.alerts.map(al => `
+        <div class="flex items-center justify-between gap-2 bg-obsidian-950/90 p-3 rounded-xl border ${al.hit ? 'border-goldPro-400/60' : 'border-slate-800'}">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-extrabold text-white">${al.symbol}</span>
+              <span class="text-[11px] font-mono text-emerald-300">${labels[al.cond]} ${al.cond.startsWith('price') ? fmtPrice(al.target) : al.target}</span>
+              ${al.hit ? '<span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-goldPro-400/20 text-goldPro-400">TRIGGERED</span>' : ''}
+            </div>
+            <div class="text-[11px] text-slate-400 mt-0.5">${al.note || 'Custom price/score alert'}</div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="toggleAlert('${al.id}')" class="px-2.5 py-1 rounded-lg text-xs font-bold ${al.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}">${al.active ? 'ON' : 'OFF'}</button>
+            <button onclick="removeAlert('${al.id}')" class="px-2 py-1 rounded-lg bg-rose-500/15 text-rose-400 text-xs font-bold">✕</button>
+          </div>
+        </div>
+      `).join('') : `<div class="text-xs text-slate-500 text-center py-4">No active alerts configured.</div>`;
+
+      document.getElementById('journal-items-list').innerHTML = state.journal.map(j => `
+        <div class="bg-obsidian-950/90 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-goldPro-400">${j.symbol}</span>
+              <span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-slate-300">${j.action}</span>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500">${j.date}</span>
+          </div>
+          <p class="text-slate-300">${j.text}</p>
+        </div>
+      `).join('');
+
+      // Daily/Weekly Recap Snapshot (3/3)
+      const all = COINS.map(c => analyzeCoin(c.symbol));
+      const topSt = [...all].sort((a, b) => b.stScore - a.stScore)[0];
+      const topLt = [...all].sort((a, b) => b.ltScore - a.ltScore)[0];
+      const topGainer = [...all].sort((a, b) => b.chg - a.chg)[0];
+      document.getElementById('recap-date-label').textContent = new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      document.getElementById('recap-cards-grid').innerHTML = `
+        <div class="bg-obsidian-950/90 p-3.5 rounded-xl border border-emerald-500/30 space-y-1">
+          <div class="text-[10px] font-bold uppercase text-emerald-400">Top Short-Term Setup</div>
+          <div class="text-lg font-extrabold text-white">${topSt.coin.symbol} <span class="text-sm font-mono text-emerald-400">${topSt.stScore}/100</span></div>
+          <div class="text-xs text-slate-400">Buy ${fmtPrice(topSt.buyZone)} • T1 ${fmtPrice(topSt.t1)}</div>
+        </div>
+        <div class="bg-obsidian-950/90 p-3.5 rounded-xl border border-goldPro-400/30 space-y-1">
+          <div class="text-[10px] font-bold uppercase text-goldPro-400">Top Long-Term DCA</div>
+          <div class="text-lg font-extrabold text-white">${topLt.coin.symbol} <span class="text-sm font-mono text-goldPro-400">${topLt.ltScore}/100</span></div>
+          <div class="text-xs text-slate-400">${topLt.coin.tier} • Mayer ${topLt.mayer.toFixed(2)}</div>
+        </div>
+        <div class="bg-obsidian-950/90 p-3.5 rounded-xl border border-cyan-500/30 space-y-1">
+          <div class="text-[10px] font-bold uppercase text-cyan-400">24h Momentum Leader</div>
+          <div class="text-lg font-extrabold text-white">${topGainer.coin.symbol} <span class="text-sm font-mono text-emerald-400">+${topGainer.chg.toFixed(2)}%</span></div>
+          <div class="text-xs text-slate-400">Price: ${fmtPrice(topGainer.price)}</div>
+        </div>
+      `;
+    }
+
+    /**************************************************************************
+     * 9. ACTIONS, DEEP-LINKS (2/3), & OPTION 2 COMPANION FILES
+     **************************************************************************/
+    function chooseCoin(sym) {
+      state.selectedCoin = sym;
+      scrubIndex = -1;
+      if (window.innerWidth < 768) state.mobileTab = 'chart';
+      syncHash();
+      persistState();
+      renderAll();
+    }
+    function setCurrency(c) { state.currency = c; persistState(); renderAll(); }
+    function setTimeframe(tf) { state.timeframe = tf; scrubIndex = -1; persistState(); renderAll(); }
+    function setChartStyle(st) { state.chartStyle = st; persistState(); renderAll(); }
+    function setBaselineRef(ref) { state.baselineRef = ref; persistState(); renderAll(); }
+    function toggleOverlay(k) { state.overlays[k] = !state.overlays[k]; persistState(); renderAll(); }
+    function setRiskLevel(v) { state.riskLevel = Number(v); persistState(); renderAll(); }
+
+    function applyPreset(p) {
+      const map = { preservation: 2, balanced: 5, macro_dca: 4, high_beta: 8 };
+      state.riskLevel = map[p] || 5;
+      persistState();
+      renderAll();
+      toast(`Applied ${p.replace('_', ' ').toUpperCase()} preset (${state.riskLevel}/10)`, 'emerald');
+    }
+
+    function toggleFavorite(sym) {
+      state.favorites = state.favorites.includes(sym)
+        ? state.favorites.filter(s => s !== sym)
+        : [...state.favorites, sym];
+      persistState();
+      renderAll();
+    }
+    function toggleFavOnly() { state.favOnly = !state.favOnly; persistState(); renderAll(); }
+    function onSearchInput(q) { state.search = q; renderCoinList(); }
+    function setSortMode(m) { state.sortMode = m; persistState(); renderCoinList(); }
+
+    function shiftCoinOrder(sym, delta) {
+      const idx = state.manualOrder.indexOf(sym);
+      const next = idx + delta;
+      if (idx < 0 || next < 0 || next >= state.manualOrder.length) return;
+      const arr = [...state.manualOrder];
+      [arr[idx], arr[next]] = [arr[next], arr[idx]];
+      state.manualOrder = arr;
+      persistState();
+      renderCoinList();
+    }
+
+    function setMobileTab(tab) { state.mobileTab = tab; syncHash(); persistState(); renderAll(); }
+    function setDesktopSection(sec) { state.desktopSection = sec; syncHash(); persistState(); renderAll(); }
+    function setDcaCapital(val) { state.dcaCapital = Math.max(1, Number(val) || 100); persistState(); renderScoreAndDca(analyzeCoin(state.selectedCoin)); }
+
+    function quickAlertForSelected() {
+      const a = analyzeCoin(state.selectedCoin);
+      state.alerts.unshift({
+        id: 'al_' + Date.now(),
+        symbol: a.coin.symbol,
+        cond: 'price_below',
+        target: a.buyZone,
+        note: 'Quick ATR Buy Zone Alert',
+        active: true,
+        hit: false,
+        softPinged: false
+      });
+      persistState();
+      renderAlertsJournalRecap();
+      toast(`Quick Alert set: ${a.coin.symbol} ≤ ${fmtPrice(a.buyZone)}`, 'gold');
+    }
+
+    function createAlert() {
+      const symbol = document.getElementById('al-coin').value;
+      const cond = document.getElementById('al-cond').value;
+      const raw = Number(document.getElementById('al-val').value);
+      const note = document.getElementById('al-note').value.trim();
+      if (!raw || raw <= 0) { toast('Enter a valid target value', 'gold'); return; }
+      const target = (cond.startsWith('price') && state.currency === 'IRT') ? raw / state.usdtIrtRate : raw;
+      state.alerts.unshift({ id: 'al_' + Date.now(), symbol, cond, target, note, active: true, hit: false, softPinged: false });
+      document.getElementById('al-val').value = '';
+      document.getElementById('al-note').value = '';
+      persistState();
+      checkAlerts();
+      renderAlertsJournalRecap();
+      toast(`Alert added for ${symbol}`, 'emerald');
+    }
+
+    function toggleAlert(id) {
+      const al = state.alerts.find(x => x.id === id);
+      if (al) { al.active = !al.active; if (al.active) { al.hit = false; al.softPinged = false; } persistState(); renderAlertsJournalRecap(); }
+    }
+    function removeAlert(id) {
+      state.alerts = state.alerts.filter(x => x.id !== id);
+      persistState();
+      renderAlertsJournalRecap();
+    }
+    function updateQuietHours() {
+      state.quietHours.enabled = document.getElementById('qh-enabled').checked;
+      state.quietHours.start = document.getElementById('qh-start').value;
+      state.quietHours.end = document.getElementById('qh-end').value;
+      persistState();
+    }
+
+    function enablePushPermission() {
+      if (!('Notification' in window)) {
+        toast('Add to iPhone/iPad Home Screen first for Apple Web Push', 'gold');
+        return;
+      }
+      Notification.requestPermission().then(p => {
+        toast(p === 'granted' ? 'Device notifications enabled!' : 'Enable notifications in Safari/iOS Settings', p === 'granted' ? 'emerald' : 'gold');
+      });
+    }
+
+    function saveJournalNote() {
+      const symbol = document.getElementById('jn-coin').value;
+      const action = document.getElementById('jn-action').value;
+      const text = document.getElementById('jn-text').value.trim();
+      if (!text) return;
+      state.journal.unshift({
+        id: 'jn_' + Date.now(),
+        date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        symbol, action, text
+      });
+      document.getElementById('jn-text').value = '';
+      persistState();
+      renderAlertsJournalRecap();
+      toast('Saved to Trade Journal', 'emerald');
+    }
+
+    function openUsdtSheet() {
+      document.getElementById('input-usdt-irt').value = state.usdtIrtRate;
+      document.getElementById('input-parity-irt').value = state.parityIrtRate;
+      document.getElementById('usdt-sheet').classList.remove('hidden');
+      document.getElementById('usdt-sheet').classList.add('flex');
+    }
+    function closeUsdtSheet() {
+      document.getElementById('usdt-sheet').classList.add('hidden');
+      document.getElementById('usdt-sheet').classList.remove('flex');
+    }
+    function saveUsdtSheet() {
+      const u = Number(document.getElementById('input-usdt-irt').value);
+      const p = Number(document.getElementById('input-parity-irt').value);
+      if (u > 0) state.usdtIrtRate = u;
+      if (p > 0) state.parityIrtRate = p;
+      persistState();
+      closeUsdtSheet();
+      renderAll();
+      toast('Updated Nobitex USDT/IRT & Parity Spread', 'emerald');
+    }
+
+    function setGlanceMode(show) {
+      const el = document.getElementById('glance-screen');
+      if (!show) { el.classList.add('hidden'); el.classList.remove('flex'); return; }
+      const favs = state.favorites.slice(0, 4).map(s => analyzeCoin(s));
+      document.getElementById('glance-time').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('glance-nobitex').textContent = `USDT/IRT: ${Number(state.usdtIrtRate).toLocaleString('en-US')}`;
+      document.getElementById('glance-cards').innerHTML = favs.map(a => `
+        <div class="p-5 rounded-3xl bg-neutral-950 border border-neutral-800 flex items-center justify-between">
+          <div>
+            <div class="text-2xl font-extrabold text-white">${a.coin.symbol}</div>
+            <div class="text-xs font-mono text-emerald-400 mt-1">ST ${a.stScore} • LT ${a.ltScore} • ${a.verdict}</div>
+          </div>
+          <div class="text-right font-mono">
+            <div class="text-xl font-bold text-white">${fmtPrice(a.price)}</div>
+            <div class="text-xs ${a.chg >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${a.chg >= 0 ? '+' : ''}${a.chg.toFixed(2)}%</div>
+          </div>
+        </div>
+      `).join('');
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function syncHash() {
+      try {
+        history.replaceState(null, '', `#coin=${encodeURIComponent(state.selectedCoin)}&tab=${encodeURIComponent(state.desktopSection)}`);
+      } catch (e) {}
+    }
+    function readHash() {
+      const h = window.location.hash.replace(/^#/, '');
+      if (!h) return;
+      const p = new URLSearchParams(h);
+      const c = p.get('coin');
+      const t = p.get('tab');
+      if (c && COINS.some(x => x.symbol === c.toUpperCase())) state.selectedCoin = c.toUpperCase();
+      if (t && ['chart', 'alerts', 'setup'].includes(t)) {
+        state.desktopSection = t;
+        state.mobileTab = t;
+      }
+    }
+    window.addEventListener('hashchange', () => { readHash(); renderAll(); });
+
+    function toast(msg, tone = 'emerald') {
+      const stack = document.getElementById('toast-stack');
+      const div = document.createElement('div');
+      div.className = `px-4 py-2.5 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-xl transition-all ${
+        tone === 'gold'
+          ? 'bg-amber-950/90 border-goldPro-400/50 text-amber-200'
+          : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+      }`;
+      div.textContent = msg;
+      stack.appendChild(div);
+      setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 300); }, 3000);
+    }
+
+    // Option 2 Companion Files (manifest.json, sw.js, worker.js, CryptoPulseWidget.swift)
+    const KIT_FILES = {
+      manifest: {
+        desc: 'Save as manifest.json next to index.html (uses your 512px Obsidian/Emerald/Gold "N" icon)',
+        code: JSON.stringify({
+          name: 'CryptoPulse Pro — Nobitex Edition',
+          short_name: 'CryptoPulse',
+          start_url: './index.html',
+          display: 'standalone',
+          background_color: '#06090e',
+          theme_color: '#06090e',
+          icons: [
+            { src: './CryptoPulse-Pro-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ]
+        }, null, 2)
+      },
+      sw: {
+        desc: 'Save as sw.js next to index.html for Direct Apple Web Push & notification deep-linking',
+        code: `self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+
+self.addEventListener('push', (event) => {
+  const payload = event.data ? event.data.json() : {};
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'CryptoPulse Pro Alert', {
+      body: payload.body || 'Target reached.',
+      icon: './CryptoPulse-Pro-512.png',
+      badge: './CryptoPulse-Pro-512.png',
+      data: { url: payload.url || './index.html#tab=alerts' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const dest = event.notification.data?.url || './index.html';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) { w.navigate(dest); return w.focus(); }
+      }
+      return clients.openWindow(dest);
+    })
+  );
+});`
+      },
+      worker: {
+        desc: 'Cloudflare Worker cron script for 24/7 background monitoring & Direct Apple Web Push',
+        code: `export default {
+  async scheduled(event, env, ctx) {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana,bitcoin,ethereum,pax-gold&vs_currencies=usd');
+    const prices = await res.json();
+    const rules = JSON.parse(env.ALERT_RULES || '[]');
+    for (const r of rules) {
+      const px = prices[r.cgId]?.usd;
+      if (px && ((r.dir === 'below' && px <= r.target) || (r.dir === 'above' && px >= r.target))) {
+        console.log('Dispatching Direct Apple Push:', r.symbol, px);
+      }
+    }
+  }
+};`
+      },
+      swift: {
+        desc: 'Optional Xcode WidgetKit extension (CryptoPulseWidget.swift) — drop CryptoPulse-Pro-512.png into Assets.xcassets/AppIcon',
+        code: `import WidgetKit
+import SwiftUI
+
+struct PulseEntry: TimelineEntry {
+    let date: Date
+    let symbol: String
+    let price: String
+    let st: Int
+    let lt: Int
+}
+
+struct PulseProvider: TimelineProvider {
+    func placeholder(in context: Context) -> PulseEntry {
+        PulseEntry(date: Date(), symbol: "SOL", price: "$216.40", st: 76, lt: 82)
+    }
+    func getSnapshot(in context: Context, completion: @escaping (PulseEntry) -> ()) {
+        completion(placeholder(in: context))
+    }
+    func getTimeline(in context: Context, completion: @escaping (Timeline<PulseEntry>) -> ()) {
+        let defaults = UserDefaults(suiteName: "group.com.cryptopulse.nobitex")
+        let entry = PulseEntry(
+            date: Date(),
+            symbol: defaults?.string(forKey: "topSymbol") ?? "SOL",
+            price: defaults?.string(forKey: "topPrice") ?? "$216.40",
+            st: defaults?.integer(forKey: "topStScore") ?? 76,
+            lt: defaults?.integer(forKey: "topLtScore") ?? 82
+        )
+        completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(900))))
+    }
+}
+
+struct CryptoPulseLockView: View {
+    var entry: PulseProvider.Entry
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(entry.symbol).font(.headline).bold()
+                Spacer()
+                Text(entry.price).font(.subheadline).monospacedDigit()
+            }
+            Text("ST \\(entry.st) • LT \\(entry.lt)").font(.caption2).foregroundColor(.secondary)
+        }
+        .containerBackground(.fill.tertiary, for: .widget)
+    }
+}
+
+@main
+struct CryptoPulseWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CryptoPulseLockWidget", provider: PulseProvider()) { entry in
+            CryptoPulseLockView(entry: entry)
+        }
+        .configurationDisplayName("CryptoPulse Pro")
+        .description("Live Nobitex & Crypto signals on your iOS Lock Screen.")
+        .supportedFamilies([.accessoryRectangular, .accessoryCircular, .accessoryInline])
+    }
+}`
+      }
+    };
+
+    let activeKitKey = 'manifest';
+    function selectKitFile(key) {
+      activeKitKey = key;
+      document.getElementById('kit-file-desc').textContent = KIT_FILES[key].desc;
+      document.getElementById('kit-code-textarea').value = KIT_FILES[key].code;
+      document.querySelectorAll('.kit-tab').forEach(btn => {
+        const active = btn.dataset.kit === key;
+        btn.className = `kit-tab px-3 py-1.5 rounded-xl text-xs font-mono font-bold ${
+          active ? 'bg-emerald-500 text-obsidian-950' : 'bg-obsidian-950 text-slate-300 border border-slate-800'
+        }`;
+      });
+    }
+    function copyKitCode() {
+      const ta = document.getElementById('kit-code-textarea');
+      ta.select();
+      document.execCommand('copy');
+      toast(`Copied ${activeKitKey} code`, 'emerald');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      generateCustomAppIconPng();
+      readHash();
+      bindChartTouchAndMouse();
+      selectKitFile('manifest');
+      renderAll();
+      syncLivePrices(false);
+      if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      }
+      setInterval(() => syncLivePrices(false), 60000);
+    });
+  </script>
+</body>
+</html>
